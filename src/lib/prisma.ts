@@ -20,8 +20,18 @@ function createPrismaClient() {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+function getPrismaClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+  return globalForPrisma.prisma;
 }
+
+// Proxy: só conecta ao banco no primeiro uso real (ex: `prisma.demanda.findMany(...)`),
+// nunca só por este arquivo ser importado/carregado. Isso evita quebrar o build (que carrega
+// as rotas para inspecioná-las) caso DATABASE_URL não esteja disponível nesse momento.
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getPrismaClient() as object, prop, receiver);
+  },
+});
