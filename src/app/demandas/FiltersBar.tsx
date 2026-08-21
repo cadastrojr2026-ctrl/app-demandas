@@ -1,6 +1,6 @@
 "use client";
 
-import { PRIORIDADE_LABEL, PRIORIDADE_ORDER, SETOR_LABEL, SETORES, STATUS_LABEL, STATUS_ORDER } from "@/lib/constants";
+import { PRIORIDADE_LABEL, PRIORIDADE_ORDER, SETOR_LABEL, SETORES, SETORES_RESPONSAVEL, STATUS_LABEL, STATUS_ORDER } from "@/lib/constants";
 import type { Prioridade, Setor, StatusDemanda } from "@/generated/prisma/client";
 
 export interface Filters {
@@ -65,7 +65,7 @@ export function FiltersBar({
         className={selectClass}
       >
         <option value="">Responsável: todos</option>
-        {SETORES.map((s) => (
+        {SETORES_RESPONSAVEL.map((s) => (
           <option key={s} value={s}>
             {SETOR_LABEL[s]}
           </option>

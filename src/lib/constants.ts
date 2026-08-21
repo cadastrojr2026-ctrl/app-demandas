@@ -1,6 +1,9 @@
-import type { Prioridade, Setor, StatusDemanda } from "@/generated/prisma/client";
+import type { Prioridade, Setor, StatusDemanda, TipoEvento } from "@/generated/prisma/client";
 
 export const SETORES: Setor[] = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"];
+
+// Estoque só solicita — nunca é o setor responsável por atender uma demanda.
+export const SETORES_RESPONSAVEL: Setor[] = ["ALMOXARIFADO", "FUNDICAO"];
 
 export const SETOR_LABEL: Record<Setor, string> = {
   ESTOQUE: "Estoque",
@@ -48,4 +51,22 @@ export const PRIORIDADE_BADGE_CLASS: Record<Prioridade, string> = {
     "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300 ring-1 ring-inset ring-sky-600/20 dark:ring-sky-400/20",
   BAIXA:
     "bg-neutral-100 text-neutral-700 dark:bg-neutral-500/15 dark:text-neutral-300 ring-1 ring-inset ring-neutral-500/20",
+};
+
+export const TIPO_EVENTO_LABEL: Record<TipoEvento, string> = {
+  CRIADA: "Criada",
+  EDITADA: "Editada",
+  STATUS_ALTERADO: "Situação alterada",
+  EXCLUIDA: "Excluída",
+};
+
+export const TIPO_EVENTO_BADGE_CLASS: Record<TipoEvento, string> = {
+  CRIADA:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 ring-1 ring-inset ring-emerald-600/20 dark:ring-emerald-400/20",
+  EDITADA:
+    "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300 ring-1 ring-inset ring-sky-600/20 dark:ring-sky-400/20",
+  STATUS_ALTERADO:
+    "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 ring-1 ring-inset ring-blue-600/20 dark:ring-blue-400/20",
+  EXCLUIDA:
+    "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 ring-1 ring-inset ring-red-600/20 dark:ring-red-400/20",
 };

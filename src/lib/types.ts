@@ -1,4 +1,4 @@
-import type { Prioridade, Role, Setor, StatusDemanda } from "@/generated/prisma/client";
+import type { Prioridade, Role, Setor, StatusDemanda, TipoEvento } from "@/generated/prisma/client";
 
 export interface DemandaDTO {
   id: number;
@@ -8,6 +8,7 @@ export interface DemandaDTO {
   setorResponsavel: Setor;
   status: StatusDemanda;
   prioridade: Prioridade;
+  prazo: string | null;
   criadoPorId: number;
   exemplo: boolean;
   createdAt: string;
@@ -21,4 +22,16 @@ export interface SessionInfo {
   nome: string;
   setor: Setor;
   role: Role;
+}
+
+export interface HistoricoEventoDTO {
+  id: number;
+  demandaId: number;
+  demandaTitulo: string;
+  tipo: TipoEvento;
+  descricao: string;
+  usuarioNome: string;
+  usuarioSetor: Setor;
+  exemplo: boolean;
+  createdAt: string;
 }

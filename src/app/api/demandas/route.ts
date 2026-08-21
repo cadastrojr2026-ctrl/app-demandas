@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { registrarEvento } from "@/lib/historico";
+import { PRIORIDADE_LABEL, SETOR_LABEL } from "@/lib/constants";
 import type { Prisma, Prioridade, Setor, StatusDemanda } from "@/generated/prisma/client";
 
 const SETOR_VALUES = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"] as const;
+// Estoque só solicita — nunca é o setor responsável por atender uma demanda.
+const SETOR_RESPONSAVEL_VALUES = ["ALMOXARIFADO", "FUNDICAO"] as const;
 const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 const PRIORIDADE_VALUES = ["BAIXA", "MEDIA", "ALTA"] as const;
 
@@ -55,11 +59,19 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ demandas, session: auth.session });
 }
 
+const dataOpcional = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Data inválida.")
+  .optional()
+  .nullable();
+
 const createSchema = z.object({
   titulo: z.string().trim().min(3, "Título muito curto.").max(200),
   descricao: z.string().trim().max(2000).optional().nullable(),
-  setorResponsavel: z.enum(SETOR_VALUES),
+  setorResponsavel: z.enum(SETOR_RESPONSAVEL_VALUES),
   prioridade: z.enum(PRIORIDADE_VALUES).optional(),
+  prazo: dataOpcional,
 });
 
 export async function POST(request: NextRequest) {
@@ -75,7 +87,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { titulo, descricao, setorResponsavel, prioridade } = parsed.data;
+  const { titulo, descricao, setorResponsavel, prioridade, prazo } = parsed.data;
   const setorSolicitante = auth.session.setor;
 
   if (setorResponsavel === setorSolicitante) {
@@ -92,11 +104,21 @@ export async function POST(request: NextRequest) {
       setorResponsavel,
       setorSolicitante,
       prioridade: prioridade ?? "MEDIA",
+      prazo: prazo ? new Date(prazo) : null,
       criadoPorId: auth.session.userId,
     },
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
     },
+  });
+
+  await registrarEvento({
+    demandaId: demanda.id,
+    demandaTitulo: demanda.titulo,
+    tipo: "CRIADA",
+    descricao: `Demanda criada por ${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) para ${SETOR_LABEL[setorResponsavel]}, prioridade ${PRIORIDADE_LABEL[demanda.prioridade]}.`,
+    usuarioNome: auth.session.nome,
+    usuarioSetor: auth.session.setor,
   });
 
   return NextResponse.json({ demanda }, { status: 201 });

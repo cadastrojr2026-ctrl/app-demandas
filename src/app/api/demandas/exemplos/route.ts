@@ -8,5 +8,6 @@ export async function DELETE() {
   if ("error" in auth) return auth.error;
 
   const { count } = await prisma.demanda.deleteMany({ where: { exemplo: true } });
+  await prisma.historicoEvento.deleteMany({ where: { exemplo: true } });
   return NextResponse.json({ ok: true, count });
 }

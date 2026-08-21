@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PRIORIDADE_LABEL, PRIORIDADE_ORDER, SETOR_LABEL, SETORES } from "@/lib/constants";
+import { PRIORIDADE_LABEL, PRIORIDADE_ORDER, SETOR_LABEL, SETORES_RESPONSAVEL } from "@/lib/constants";
 import type { DemandaDTO, SessionInfo } from "@/lib/types";
 import type { Prioridade, Setor } from "@/generated/prisma/client";
 
@@ -18,7 +18,7 @@ const inputClass =
 export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) {
   const editando = demanda !== null;
   const setorSolicitante = editando ? demanda!.setorSolicitante : session.setor;
-  const setoresDestino = SETORES.filter((s) => s !== setorSolicitante);
+  const setoresDestino = SETORES_RESPONSAVEL.filter((s) => s !== setorSolicitante);
 
   const [titulo, setTitulo] = useState(demanda?.titulo ?? "");
   const [descricao, setDescricao] = useState(demanda?.descricao ?? "");
@@ -26,6 +26,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
     demanda?.setorResponsavel ?? setoresDestino[0]
   );
   const [prioridade, setPrioridade] = useState<Prioridade>(demanda?.prioridade ?? "MEDIA");
+  const [prazo, setPrazo] = useState(demanda?.prazo ? demanda.prazo.slice(0, 10) : "");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -39,6 +40,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
         descricao: descricao || null,
         setorResponsavel,
         prioridade,
+        prazo: prazo || null,
       };
       const res = await fetch(editando ? `/api/demandas/${demanda!.id}` : "/api/demandas", {
         method: editando ? "PATCH" : "POST",
@@ -128,22 +130,37 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="prioridade" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Prioridade
-            </label>
-            <select
-              id="prioridade"
-              value={prioridade}
-              onChange={(e) => setPrioridade(e.target.value as Prioridade)}
-              className={inputClass}
-            >
-              {PRIORIDADE_ORDER.map((p) => (
-                <option key={p} value={p}>
-                  {PRIORIDADE_LABEL[p]}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="prioridade" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Prioridade
+              </label>
+              <select
+                id="prioridade"
+                value={prioridade}
+                onChange={(e) => setPrioridade(e.target.value as Prioridade)}
+                className={inputClass}
+              >
+                {PRIORIDADE_ORDER.map((p) => (
+                  <option key={p} value={p}>
+                    {PRIORIDADE_LABEL[p]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="prazo" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Prazo — para quando (opcional)
+              </label>
+              <input
+                id="prazo"
+                type="date"
+                value={prazo}
+                onChange={(e) => setPrazo(e.target.value)}
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {erro && (

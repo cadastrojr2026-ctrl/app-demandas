@@ -14,6 +14,12 @@ if (!connectionString) {
 const adapter = new PrismaNeon({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
+function emDias(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
 async function upsertUser(params: {
   usuario: string;
   nome: string;
@@ -43,7 +49,7 @@ async function main() {
     setor: "ESTOQUE",
     role: "ADMIN",
   });
-  const almoxarifado = await upsertUser({
+  await upsertUser({
     usuario: "almoxarifado",
     nome: "Almoxarifado",
     senha: "almoxarifado123",
@@ -69,92 +75,162 @@ async function main() {
     return;
   }
 
-  await prisma.demanda.createMany({
+  // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
+  const dadosDemandas = [
+    {
+      titulo: "Reposição de arame de latão 0,8mm",
+      descricao: "Estoque baixo de arame de latão para produção da linha de brincos.",
+      setorSolicitante: "ESTOQUE" as const,
+      setorResponsavel: "ALMOXARIFADO" as const,
+      status: "PENDENTE" as const,
+      prioridade: "ALTA" as const,
+      prazo: emDias(3),
+      criadoPorId: estoque.id,
+      exemplo: true,
+    },
+    {
+      titulo: "Compra de banho de ouro 24k (lote 500ml)",
+      descricao: "Necessário para atender pedidos da coleção de anéis.",
+      setorSolicitante: "ESTOQUE" as const,
+      setorResponsavel: "ALMOXARIFADO" as const,
+      status: "EM_ANDAMENTO" as const,
+      prioridade: "MEDIA" as const,
+      prazo: emDias(7),
+      criadoPorId: estoque.id,
+      exemplo: true,
+    },
+    {
+      titulo: "Fundição de 2kg de liga para colares",
+      descricao: "Lote referente ao pedido nº 1042 da coleção Primavera.",
+      setorSolicitante: "ESTOQUE" as const,
+      setorResponsavel: "FUNDICAO" as const,
+      status: "PENDENTE" as const,
+      prioridade: "ALTA" as const,
+      prazo: emDias(-1), // vencida, para demonstrar o destaque de atraso
+      criadoPorId: estoque.id,
+      exemplo: true,
+    },
+    {
+      titulo: "Fundição de peças para pulseiras (molde nº 12)",
+      descricao: null,
+      setorSolicitante: "ESTOQUE" as const,
+      setorResponsavel: "FUNDICAO" as const,
+      status: "CONCLUIDA" as const,
+      prioridade: "MEDIA" as const,
+      prazo: null,
+      criadoPorId: estoque.id,
+      exemplo: true,
+    },
+    {
+      titulo: "Reposição de embalagens e caixas para envio",
+      descricao: "Faltam caixas pequenas para o setor de expedição.",
+      setorSolicitante: "ESTOQUE" as const,
+      setorResponsavel: "ALMOXARIFADO" as const,
+      status: "CONCLUIDA" as const,
+      prioridade: "BAIXA" as const,
+      prazo: null,
+      criadoPorId: estoque.id,
+      exemplo: true,
+    },
+    {
+      titulo: "Solicitação de mais lixas para polimento",
+      descricao: "Uso diário no acabamento das peças fundidas.",
+      setorSolicitante: "FUNDICAO" as const,
+      setorResponsavel: "ALMOXARIFADO" as const,
+      status: "PENDENTE" as const,
+      prioridade: "MEDIA" as const,
+      prazo: emDias(5),
+      criadoPorId: fundicao.id,
+      exemplo: true,
+    },
+    {
+      titulo: "Cancelamento de fundição do molde antigo",
+      descricao: "Molde substituído por versão nova, pedido cancelado.",
+      setorSolicitante: "ESTOQUE" as const,
+      setorResponsavel: "FUNDICAO" as const,
+      status: "CANCELADA" as const,
+      prioridade: "BAIXA" as const,
+      prazo: null,
+      criadoPorId: estoque.id,
+      exemplo: true,
+    },
+    {
+      titulo: "Cera de injeção para moldes",
+      descricao: "Fundição precisa de mais cera de injeção — verificar estoque no almoxarifado.",
+      setorSolicitante: "FUNDICAO" as const,
+      setorResponsavel: "ALMOXARIFADO" as const,
+      status: "EM_ANDAMENTO" as const,
+      prioridade: "ALTA" as const,
+      prazo: emDias(2),
+      criadoPorId: fundicao.id,
+      exemplo: true,
+    },
+  ];
+
+  const demandasCriadas = [];
+  for (const dados of dadosDemandas) {
+    demandasCriadas.push(await prisma.demanda.create({ data: dados }));
+  }
+
+  console.log("Demandas de exemplo criadas.");
+
+  const nomePorSetor = {
+    ESTOQUE: "Estoque",
+    ALMOXARIFADO: "Almoxarifado",
+    FUNDICAO: "Fundição",
+  } as const;
+
+  await prisma.historicoEvento.createMany({
     data: [
       {
-        titulo: "Reposição de arame de latão 0,8mm",
-        descricao: "Estoque baixo de arame de latão para produção da linha de brincos.",
-        setorSolicitante: "ESTOQUE",
-        setorResponsavel: "ALMOXARIFADO",
-        status: "PENDENTE",
-        prioridade: "ALTA",
-        criadoPorId: estoque.id,
+        demandaId: demandasCriadas[0].id,
+        demandaTitulo: demandasCriadas[0].titulo,
+        tipo: "CRIADA",
+        descricao: "Demanda criada por Estoque (Estoque) para Almoxarifado, prioridade Alta.",
+        usuarioNome: nomePorSetor.ESTOQUE,
+        usuarioSetor: "ESTOQUE",
         exemplo: true,
       },
       {
-        titulo: "Compra de banho de ouro 24k (lote 500ml)",
-        descricao: "Necessário para atender pedidos da coleção de anéis.",
-        setorSolicitante: "ESTOQUE",
-        setorResponsavel: "ALMOXARIFADO",
-        status: "EM_ANDAMENTO",
-        prioridade: "MEDIA",
-        criadoPorId: estoque.id,
+        demandaId: demandasCriadas[1].id,
+        demandaTitulo: demandasCriadas[1].titulo,
+        tipo: "STATUS_ALTERADO",
+        descricao: 'Situação alterada de "Pendente" para "Em andamento" por Almoxarifado (ALMOXARIFADO).',
+        usuarioNome: nomePorSetor.ALMOXARIFADO,
+        usuarioSetor: "ALMOXARIFADO",
         exemplo: true,
       },
       {
-        titulo: "Fundição de 2kg de liga para colares",
-        descricao: "Lote referente ao pedido nº 1042 da coleção Primavera.",
-        setorSolicitante: "ESTOQUE",
-        setorResponsavel: "FUNDICAO",
-        status: "PENDENTE",
-        prioridade: "ALTA",
-        criadoPorId: estoque.id,
+        demandaId: demandasCriadas[3].id,
+        demandaTitulo: demandasCriadas[3].titulo,
+        tipo: "STATUS_ALTERADO",
+        descricao: 'Situação alterada de "Em andamento" para "Concluída" por Fundição (FUNDICAO).',
+        usuarioNome: nomePorSetor.FUNDICAO,
+        usuarioSetor: "FUNDICAO",
         exemplo: true,
       },
       {
-        titulo: "Fundição de peças para pulseiras (molde nº 12)",
-        descricao: null,
-        setorSolicitante: "ESTOQUE",
-        setorResponsavel: "FUNDICAO",
-        status: "CONCLUIDA",
-        prioridade: "MEDIA",
-        criadoPorId: estoque.id,
+        demandaId: demandasCriadas[6].id,
+        demandaTitulo: demandasCriadas[6].titulo,
+        tipo: "EDITADA",
+        descricao: "Campos atualizados (descrição, prioridade) por Estoque (ESTOQUE).",
+        usuarioNome: nomePorSetor.ESTOQUE,
+        usuarioSetor: "ESTOQUE",
         exemplo: true,
       },
       {
-        titulo: "Reposição de embalagens e caixas para envio",
-        descricao: "Faltam caixas pequenas para o setor de expedição.",
-        setorSolicitante: "ESTOQUE",
-        setorResponsavel: "ALMOXARIFADO",
-        status: "CONCLUIDA",
-        prioridade: "BAIXA",
-        criadoPorId: estoque.id,
-        exemplo: true,
-      },
-      {
-        titulo: "Solicitação de mais lixas para polimento",
-        descricao: "Uso diário no acabamento das peças fundidas.",
-        setorSolicitante: "FUNDICAO",
-        setorResponsavel: "ALMOXARIFADO",
-        status: "PENDENTE",
-        prioridade: "MEDIA",
-        criadoPorId: fundicao.id,
-        exemplo: true,
-      },
-      {
-        titulo: "Cancelamento de fundição do molde antigo",
-        descricao: "Molde substituído por versão nova, pedido cancelado.",
-        setorSolicitante: "ESTOQUE",
-        setorResponsavel: "FUNDICAO",
-        status: "CANCELADA",
-        prioridade: "BAIXA",
-        criadoPorId: estoque.id,
-        exemplo: true,
-      },
-      {
-        titulo: "Falta de cera para injeção de moldes",
-        descricao: "Estoque de cera de injeção está acabando, avisar compras.",
-        setorSolicitante: "ALMOXARIFADO",
-        setorResponsavel: "ESTOQUE",
-        status: "EM_ANDAMENTO",
-        prioridade: "ALTA",
-        criadoPorId: almoxarifado.id,
+        demandaId: demandasCriadas[6].id,
+        demandaTitulo: demandasCriadas[6].titulo,
+        tipo: "STATUS_ALTERADO",
+        descricao: 'Situação alterada de "Pendente" para "Cancelada" por Estoque (ESTOQUE).',
+        usuarioNome: nomePorSetor.ESTOQUE,
+        usuarioSetor: "ESTOQUE",
         exemplo: true,
       },
     ],
   });
 
-  console.log("Demandas de exemplo criadas.");
+  console.log("Histórico de exemplo criado.");
 }
 
 main()

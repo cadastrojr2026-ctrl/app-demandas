@@ -3,14 +3,12 @@
 import { useMemo } from "react";
 import {
   SETOR_LABEL,
+  SETORES_RESPONSAVEL,
   STATUS_BADGE_CLASS,
   STATUS_LABEL,
   STATUS_ORDER,
 } from "@/lib/constants";
 import type { DemandaDTO } from "@/lib/types";
-import type { Setor } from "@/generated/prisma/client";
-
-const SETORES_RESPONSAVEIS: Setor[] = ["ALMOXARIFADO", "FUNDICAO", "ESTOQUE"];
 
 export function SummaryCards({ demandas }: { demandas: DemandaDTO[] }) {
   const porStatus = useMemo(() => {
@@ -21,7 +19,7 @@ export function SummaryCards({ demandas }: { demandas: DemandaDTO[] }) {
 
   const porSetorResponsavel = useMemo(() => {
     const contagem: Record<string, { abertas: number; total: number }> = {};
-    for (const setor of SETORES_RESPONSAVEIS) contagem[setor] = { abertas: 0, total: 0 };
+    for (const setor of SETORES_RESPONSAVEL) contagem[setor] = { abertas: 0, total: 0 };
     for (const d of demandas) {
       const c = contagem[d.setorResponsavel];
       if (!c) continue;
@@ -55,8 +53,8 @@ export function SummaryCards({ demandas }: { demandas: DemandaDTO[] }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {SETORES_RESPONSAVEIS.map((setor) => {
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {SETORES_RESPONSAVEL.map((setor) => {
           const c = porSetorResponsavel[setor];
           return (
             <div

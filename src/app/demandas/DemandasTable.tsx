@@ -22,6 +22,21 @@ function formatarData(iso: string) {
   }).format(new Date(iso));
 }
 
+function formatarPrazo(iso: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(iso));
+}
+
+function prazoVencido(d: DemandaDTO) {
+  if (!d.prazo) return false;
+  if (d.status === "CONCLUIDA" || d.status === "CANCELADA") return false;
+  return new Date(d.prazo).getTime() < Date.now();
+}
+
 export function DemandasTable({
   demandas,
   session,
@@ -47,13 +62,14 @@ export function DemandasTable({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <table className="w-full min-w-[860px] border-collapse text-sm">
+      <table className="w-full min-w-[960px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
             <th className="px-4 py-3 font-medium">Demanda</th>
             <th className="px-4 py-3 font-medium">Solicitante</th>
             <th className="px-4 py-3 font-medium">Responsável</th>
             <th className="px-4 py-3 font-medium">Prioridade</th>
+            <th className="px-4 py-3 font-medium">Prazo</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 font-medium">Criado por / em</th>
             <th className="px-4 py-3 font-medium text-right">Ações</th>
@@ -100,6 +116,22 @@ export function DemandasTable({
                   >
                     {PRIORIDADE_LABEL[d.prioridade]}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {d.prazo ? (
+                    <span
+                      className={
+                        prazoVencido(d)
+                          ? "font-medium text-red-600 dark:text-red-400"
+                          : "text-zinc-600 dark:text-zinc-300"
+                      }
+                      title={prazoVencido(d) ? "Prazo vencido" : undefined}
+                    >
+                      {formatarPrazo(d.prazo)}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-400 dark:text-zinc-600">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <select

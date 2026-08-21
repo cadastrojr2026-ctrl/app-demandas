@@ -34,6 +34,13 @@ enum Prioridade {
   ALTA
 }
 
+enum TipoEvento {
+  CRIADA
+  EDITADA
+  STATUS_ALTERADO
+  EXCLUIDA
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   nome      String
@@ -58,6 +65,9 @@ model Demanda {
   status     StatusDemanda @default(PENDENTE)
   prioridade Prioridade    @default(MEDIA)
 
+  // data para quando a demanda é esperada (opcional)
+  prazo DateTime?
+
   criadoPorId Int
   criadoPor   User @relation("CriadoPor", fields: [criadoPorId], references: [id])
 
@@ -70,4 +80,22 @@ model Demanda {
   @@index([status])
   @@index([setorResponsavel])
   @@index([setorSolicitante])
+}
+
+// Histórico de eventos das demandas (criação, edição, mudança de status, exclusão).
+// Dados desnormalizados (sem relação de chave estrangeira com Demanda) para que o
+// histórico sobreviva mesmo que a demanda original seja excluída.
+model HistoricoEvento {
+  id             Int        @id @default(autoincrement())
+  demandaId      Int
+  demandaTitulo  String
+  tipo           TipoEvento
+  descricao      String
+  usuarioNome    String
+  usuarioSetor   Setor
+  exemplo        Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+
+  @@index([demandaId])
+  @@index([createdAt])
 }
