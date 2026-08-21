@@ -1,0 +1,73 @@
+// Schema do banco de dados do App de Demandas
+// Setores: ESTOQUE (admin), ALMOXARIFADO e FUNDIÇÃO (usuários)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Setor {
+  ESTOQUE
+  ALMOXARIFADO
+  FUNDICAO
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum StatusDemanda {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  usuario   String   @unique
+  senhaHash String
+  setor     Setor
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  demandasCriadas Demanda[] @relation("CriadoPor")
+}
+
+model Demanda {
+  id       Int    @id @default(autoincrement())
+  titulo   String
+  descricao String?
+
+  // setor que está solicitando (origem) e setor que deve atender (responsável)
+  setorSolicitante Setor
+  setorResponsavel Setor
+
+  status     StatusDemanda @default(PENDENTE)
+  prioridade Prioridade    @default(MEDIA)
+
+  criadoPorId Int
+  criadoPor   User @relation("CriadoPor", fields: [criadoPorId], references: [id])
+
+  // marca dados de exemplo (seed), removíveis em lote pelo admin
+  exemplo Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([setorResponsavel])
+  @@index([setorSolicitante])
+}
