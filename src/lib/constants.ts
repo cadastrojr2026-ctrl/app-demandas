@@ -1,6 +1,13 @@
-import type { Prioridade, Setor, StatusDemanda, TipoEvento, TipoProduto } from "@/generated/prisma/client";
+import type { Prioridade, Role, Setor, StatusDemanda, TipoEvento, TipoProduto } from "@/generated/prisma/client";
 
 export const SETORES: Setor[] = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"];
+
+export const ROLES: Role[] = ["USER", "ADMIN"];
+
+export const ROLE_LABEL: Record<Role, string> = {
+  ADMIN: "Administrador",
+  USER: "Usuário",
+};
 
 // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
 export const SETORES_RESPONSAVEL: Setor[] = ["ALMOXARIFADO", "FUNDICAO"];

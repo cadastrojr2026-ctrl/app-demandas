@@ -44,12 +44,14 @@ export function DemandasTable({
   onEdit,
   onDelete,
   onChangeStatus,
+  onVerHistorico,
 }: {
   demandas: DemandaDTO[];
   session: SessionInfo;
   onEdit: (demanda: DemandaDTO) => void;
   onDelete: (demanda: DemandaDTO) => void;
   onChangeStatus: (demanda: DemandaDTO, status: StatusDemanda) => Promise<void>;
+  onVerHistorico: (demanda: DemandaDTO) => void;
 }) {
   const [alterandoId, setAlterandoId] = useState<number | null>(null);
 
@@ -172,6 +174,13 @@ export function DemandasTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onVerHistorico(d)}
+                      className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                    >
+                      Histórico
+                    </button>
                     <button
                       type="button"
                       onClick={() => onEdit(d)}

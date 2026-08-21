@@ -43,6 +43,14 @@ export function TopBar({ session }: { session: SessionInfo }) {
               Histórico
             </Link>
           )}
+          {session.role === "ADMIN" && (
+            <Link
+              href="/usuarios"
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              Usuários
+            </Link>
+          )}
           <div className="text-right">
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{session.nome}</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">

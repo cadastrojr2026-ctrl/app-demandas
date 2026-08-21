@@ -15,6 +15,13 @@ Almoxarifado e a Fundição recebem e atendem — e o chefe acompanha tudo em um
 - Edição e exclusão (exclusão só para o administrador), sempre com confirmação.
 - Botão "Remover dados de exemplo" (só admin) para apagar de uma vez as demandas de demonstração.
 - Dados salvos em banco Postgres (Neon) via Prisma.
+- Tela de administração de usuários (`/usuarios`, só admin): criar, editar e trocar senha pela
+  interface — sem precisar mexer no banco.
+- Histórico de alterações por demanda: botão "Histórico" em cada linha (qualquer usuário) mostra
+  quem criou/editou/mudou a situação/excluiu aquela demanda e quando; a tela `/historico`
+  (só admin) lista tudo, com busca e filtro por tipo.
+- Notificação de WhatsApp quando uma demanda de prioridade Alta fica mais de 24h sem mudança de
+  situação (veja a seção "Notificação de WhatsApp" abaixo).
 
 ## Regras de permissão
 
@@ -91,13 +98,48 @@ Pronto — a partir daí, todo `git push` na branch principal atualiza o site au
 | `almoxarifado` | `almoxarifado123`  | Almoxarifado  | Usuário|
 | `fundicao`     | `fundicao123`      | Fundição      | Usuário|
 
-**Importante:** troque essas senhas antes de usar em produção — hoje a única forma de trocar é
-direto no banco (não há tela de "alterar senha" ainda). Para gerar um novo hash rapidamente:
+**Importante:** troque essas senhas antes de usar em produção. Agora dá pra fazer isso direto
+pela interface: entre como `estoque` (admin), abra **Usuários** no topo e use "Editar → Trocar
+senha" em cada usuário. Também é possível trocar direto no banco, se preferir:
 
 ```bash
 node -e "console.log(require('bcryptjs').hashSync('nova-senha', 10))"
 ```
 e atualize o campo `senhaHash` do usuário correspondente na tabela `User`.
+
+## Notificação de WhatsApp (demandas paradas)
+
+Todo dia (por padrão, meio-dia UTC — ajustável em `vercel.json`), a rota
+`/api/cron/demandas-paradas` verifica se existe alguma demanda de prioridade **Alta**, ainda
+não concluída/cancelada, sem mudança de situação há mais de 24h — e envia um alerta de
+WhatsApp para cada uma (no máximo 1 alerta por demanda a cada 24h, mesmo que a checagem rode
+com mais frequência).
+
+**Sem nenhum provedor configurado, os alertas só são registrados no log do servidor** (nada é
+enviado) — assim dá pra usar o resto do app normalmente e configurar o envio quando quiser, sem
+pressa. Tem um botão **"Testar agora"** na tela **Usuários** (admin) pra rodar a checagem na hora
+e ver o resultado.
+
+Para ativar o envio de verdade, escolha um provedor e defina as variáveis de ambiente
+correspondentes (local no `.env`, em produção nas *Environment Variables* do Vercel — veja o
+aviso sobre variáveis "Sensitive" mais abaixo):
+
+| `WHATSAPP_PROVIDER` | Custo | Como configurar |
+|---|---|---|
+| `callmebot` | Grátis, sem cartão | Adicione o número `+34 644 42 96 63` nos seus contatos do WhatsApp e mande a mensagem `I allow callmebot to send me messages` para ele. Você vai receber uma API key por mensagem. Defina `CALLMEBOT_PHONE` (seu número, com DDI) e `CALLMEBOT_API_KEY`. |
+| `twilio` | Pago | Crie conta em [twilio.com](https://www.twilio.com), ative o WhatsApp Sandbox (ou um número aprovado) e defina `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` e `WHATSAPP_TO` (número que recebe o alerta). |
+| `meta` | Cota grátis mensal | Crie um app em [developers.facebook.com](https://developers.facebook.com), configure a WhatsApp Cloud API e defina `WHATSAPP_CLOUD_TOKEN`, `WHATSAPP_CLOUD_PHONE_ID` e `WHATSAPP_TO`. |
+
+Detalhes de cada opção estão comentados no `.env.example` e em `src/lib/whatsapp.ts`.
+
+**Frequência da checagem:** o `vercel.json` já vem com um agendamento diário (Vercel Cron,
+grátis mesmo no plano Hobby). Se quiser checar com mais frequência (ex: a cada poucas horas),
+duas opções:
+- Ter o plano **Vercel Pro** e editar o `schedule` em `vercel.json` (ex: `"0 */4 * * *"` para
+  checar a cada 4h).
+- Continuar no plano grátis e usar um serviço externo como [cron-job.org](https://cron-job.org)
+  para chamar `https://app-demandas.vercel.app/api/cron/demandas-paradas` no intervalo desejado,
+  enviando o header `Authorization: Bearer <valor de CRON_SECRET>`.
 
 ## Stack
 
@@ -107,14 +149,18 @@ e atualize o campo `senhaHash` do usuário correspondente na tabela `User`.
 
 ## Estrutura
 
-- `prisma/schema.prisma` — modelos `User` e `Demanda`.
+- `prisma/schema.prisma` — modelos `User`, `Demanda` e `HistoricoEvento`.
 - `prisma/seed.ts` — cria os 3 usuários e as demandas de exemplo (marcadas `exemplo: true`).
 - `src/app/login` — tela de login.
-- `src/app/demandas` — dashboard (resumo, filtros, tabela, modais de criar/editar).
-- `src/app/api/...` — rotas da API (auth, CRUD de demandas, remoção de exemplos).
+- `src/app/demandas` — dashboard (resumo, filtros, tabela, modais de criar/editar/histórico).
+- `src/app/usuarios` — administração de usuários (só admin).
+- `src/app/historico` — histórico completo de eventos (só admin).
+- `src/app/api/...` — rotas da API (auth, CRUD de demandas e usuários, histórico, remoção de
+  exemplos, checagem de demandas paradas).
+- `src/lib/whatsapp.ts` / `src/lib/demandasParadas.ts` — envio de WhatsApp e detecção de
+  demandas de alta prioridade paradas.
 
 ## Próximos passos sugeridos (fora do escopo inicial)
 
-- Tela para o admin cadastrar/gerenciar usuários e trocar senhas pela interface.
-- Histórico de alterações por demanda (quem mudou o quê e quando).
-- Notificação (e-mail/WhatsApp) quando uma demanda de alta prioridade fica parada.
+- E-mail como canal alternativo/adicional de notificação (hoje só WhatsApp).
+- 2FA ou outra camada de proteção além de usuário/senha, já que o site tem URL pública.

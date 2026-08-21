@@ -25,6 +25,15 @@ export interface SessionInfo {
   role: Role;
 }
 
+export interface UserDTO {
+  id: number;
+  nome: string;
+  usuario: string;
+  setor: Setor;
+  role: Role;
+  createdAt: string;
+}
+
 export interface HistoricoEventoDTO {
   id: number;
   demandaId: number;

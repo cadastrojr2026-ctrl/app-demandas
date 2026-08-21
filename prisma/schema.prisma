@@ -86,6 +86,10 @@ model Demanda {
   // produtos relacionados à demanda (seleção múltipla, opcional)
   produtos TipoProduto[] @default([])
 
+  // último envio de alerta de "demanda parada" (WhatsApp) — evita notificar repetidamente
+  // a cada checagem; um novo alerta só é reenviado depois de passado o intervalo mínimo.
+  ultimoAlertaParadaEm DateTime?
+
   criadoPorId Int
   criadoPor   User @relation("CriadoPor", fields: [criadoPorId], references: [id])
 

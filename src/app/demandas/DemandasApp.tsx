@@ -6,6 +6,7 @@ import { SummaryCards } from "./SummaryCards";
 import { FiltersBar, FILTROS_VAZIOS, type Filters } from "./FiltersBar";
 import { DemandasTable } from "./DemandasTable";
 import { DemandaFormModal } from "./DemandaFormModal";
+import { HistoricoDemandaModal } from "./HistoricoDemandaModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { DemandaDTO, SessionInfo } from "@/lib/types";
 import type { StatusDemanda } from "@/generated/prisma/client";
@@ -17,6 +18,7 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
   const [filters, setFilters] = useState<Filters>(FILTROS_VAZIOS);
 
   const [modal, setModal] = useState<{ demanda: DemandaDTO | null } | null>(null);
+  const [paraHistorico, setParaHistorico] = useState<DemandaDTO | null>(null);
   const [paraExcluir, setParaExcluir] = useState<DemandaDTO | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [confirmarLimpeza, setConfirmarLimpeza] = useState(false);
@@ -167,9 +169,14 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
             onEdit={(d) => setModal({ demanda: d })}
             onDelete={(d) => setParaExcluir(d)}
             onChangeStatus={handleChangeStatus}
+            onVerHistorico={(d) => setParaHistorico(d)}
           />
         )}
       </main>
+
+      {paraHistorico && (
+        <HistoricoDemandaModal demanda={paraHistorico} onClose={() => setParaHistorico(null)} />
+      )}
 
       {modal && (
         <DemandaFormModal
