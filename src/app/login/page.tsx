@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession, isLoggedIn } from "@/lib/session";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage() {
@@ -7,7 +8,10 @@ export default async function LoginPage() {
   if (isLoggedIn(session)) redirect("/demandas");
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16 dark:bg-black">
+    <div className="relative flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16 dark:bg-black">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}

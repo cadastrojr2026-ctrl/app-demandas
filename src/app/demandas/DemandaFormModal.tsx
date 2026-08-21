@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { PRIORIDADE_LABEL, PRIORIDADE_ORDER, SETOR_LABEL, SETORES_RESPONSAVEL } from "@/lib/constants";
+import {
+  PRIORIDADE_LABEL,
+  PRIORIDADE_ORDER,
+  PRODUTO_LABEL,
+  PRODUTO_ORDER,
+  SETOR_LABEL,
+  SETORES_RESPONSAVEL,
+} from "@/lib/constants";
 import type { DemandaDTO, SessionInfo } from "@/lib/types";
-import type { Prioridade, Setor } from "@/generated/prisma/client";
+import type { Prioridade, Setor, TipoProduto } from "@/generated/prisma/client";
 
 type Props = {
   session: SessionInfo;
@@ -27,8 +34,21 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
   );
   const [prioridade, setPrioridade] = useState<Prioridade>(demanda?.prioridade ?? "MEDIA");
   const [prazo, setPrazo] = useState(demanda?.prazo ? demanda.prazo.slice(0, 10) : "");
+  const [produtos, setProdutos] = useState<Set<TipoProduto>>(new Set(demanda?.produtos ?? []));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  function alternarProduto(produto: TipoProduto) {
+    setProdutos((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(produto)) {
+        novo.delete(produto);
+      } else {
+        novo.add(produto);
+      }
+      return novo;
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,6 +61,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
         setorResponsavel,
         prioridade,
         prazo: prazo || null,
+        produtos: Array.from(produtos),
       };
       const res = await fetch(editando ? `/api/demandas/${demanda!.id}` : "/api/demandas", {
         method: editando ? "PATCH" : "POST",
@@ -160,6 +181,35 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
                 onChange={(e) => setPrazo(e.target.value)}
                 className={inputClass}
               />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Produtos (opcional)
+            </span>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Clique para selecionar um ou mais produtos relacionados a esta demanda.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PRODUTO_ORDER.map((produto) => {
+                const selecionado = produtos.has(produto);
+                return (
+                  <button
+                    key={produto}
+                    type="button"
+                    onClick={() => alternarProduto(produto)}
+                    aria-pressed={selecionado}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      selecionado
+                        ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                        : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    }`}
+                  >
+                    {PRODUTO_LABEL[produto]}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

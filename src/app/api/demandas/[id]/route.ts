@@ -10,6 +10,20 @@ import type { Prisma } from "@/generated/prisma/client";
 const SETOR_RESPONSAVEL_VALUES = ["ALMOXARIFADO", "FUNDICAO"] as const;
 const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 const PRIORIDADE_VALUES = ["BAIXA", "MEDIA", "ALTA"] as const;
+const PRODUTO_VALUES = [
+  "ANEL",
+  "ARGOLA",
+  "BRINCO_FIXO",
+  "BRINCO_MEDIO",
+  "CONJUNTOS",
+  "CORRENTARIA",
+  "ESCAPULARIO",
+  "GARGANTILHA",
+  "PINGENTE",
+  "PULSEIRA",
+  "TERCO",
+  "TORNOZELEIRA",
+] as const;
 
 const dataOpcional = z
   .string()
@@ -25,6 +39,7 @@ const patchSchema = z
     setorResponsavel: z.enum(SETOR_RESPONSAVEL_VALUES).optional(),
     prioridade: z.enum(PRIORIDADE_VALUES).optional(),
     prazo: dataOpcional,
+    produtos: z.array(z.enum(PRODUTO_VALUES)).optional(),
     status: z.enum(STATUS_VALUES).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { message: "Nada para atualizar." });
@@ -35,6 +50,7 @@ const CAMPO_LABEL: Record<string, string> = {
   setorResponsavel: "setor responsável",
   prioridade: "prioridade",
   prazo: "prazo",
+  produtos: "produtos",
   status: "status",
 };
 

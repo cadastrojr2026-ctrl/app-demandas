@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "TipoProduto" AS ENUM ('ANEL', 'ARGOLA', 'BRINCO_FIXO', 'BRINCO_MEDIO', 'CONJUNTOS', 'CORRENTARIA', 'ESCAPULARIO', 'GARGANTILHA', 'PINGENTE', 'PULSEIRA', 'TERCO', 'TORNOZELEIRA');
+
+-- AlterTable
+ALTER TABLE "Demanda" ADD COLUMN     "produtos" "TipoProduto"[] DEFAULT ARRAY[]::"TipoProduto"[];

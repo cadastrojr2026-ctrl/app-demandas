@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   PRIORIDADE_BADGE_CLASS,
   PRIORIDADE_LABEL,
+  PRODUTO_LABEL,
   SETOR_LABEL,
   STATUS_BADGE_CLASS,
   STATUS_LABEL,
@@ -102,6 +103,18 @@ export function DemandasTable({
                     <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
                       {d.descricao}
                     </p>
+                  )}
+                  {d.produtos.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {d.produtos.map((p) => (
+                        <span
+                          key={p}
+                          className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                        >
+                          {PRODUTO_LABEL[p]}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </td>
                 <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">

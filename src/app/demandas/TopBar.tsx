@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SETOR_LABEL } from "@/lib/constants";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import type { SessionInfo } from "@/lib/types";
 
 export function TopBar({ session }: { session: SessionInfo }) {
@@ -33,6 +34,7 @@ export function TopBar({ session }: { session: SessionInfo }) {
           </div>
         </Link>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {session.role === "ADMIN" && (
             <Link
               href="/historico"

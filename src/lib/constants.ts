@@ -1,4 +1,4 @@
-import type { Prioridade, Setor, StatusDemanda, TipoEvento } from "@/generated/prisma/client";
+import type { Prioridade, Setor, StatusDemanda, TipoEvento, TipoProduto } from "@/generated/prisma/client";
 
 export const SETORES: Setor[] = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"];
 
@@ -69,4 +69,34 @@ export const TIPO_EVENTO_BADGE_CLASS: Record<TipoEvento, string> = {
     "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 ring-1 ring-inset ring-blue-600/20 dark:ring-blue-400/20",
   EXCLUIDA:
     "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 ring-1 ring-inset ring-red-600/20 dark:ring-red-400/20",
+};
+
+export const PRODUTO_ORDER: TipoProduto[] = [
+  "ANEL",
+  "ARGOLA",
+  "BRINCO_FIXO",
+  "BRINCO_MEDIO",
+  "CONJUNTOS",
+  "CORRENTARIA",
+  "ESCAPULARIO",
+  "GARGANTILHA",
+  "PINGENTE",
+  "PULSEIRA",
+  "TERCO",
+  "TORNOZELEIRA",
+];
+
+export const PRODUTO_LABEL: Record<TipoProduto, string> = {
+  ANEL: "Anel",
+  ARGOLA: "Argola",
+  BRINCO_FIXO: "Brinco fixo",
+  BRINCO_MEDIO: "Brinco médio",
+  CONJUNTOS: "Conjuntos",
+  CORRENTARIA: "Correntaria",
+  ESCAPULARIO: "Escapulário",
+  GARGANTILHA: "Gargantilha",
+  PINGENTE: "Pingente",
+  PULSEIRA: "Pulseira",
+  TERCO: "Terço",
+  TORNOZELEIRA: "Tornozeleira",
 };

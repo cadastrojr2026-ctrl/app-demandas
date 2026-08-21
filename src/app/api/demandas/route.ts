@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
-import { PRIORIDADE_LABEL, SETOR_LABEL } from "@/lib/constants";
+import { PRIORIDADE_LABEL, PRODUTO_LABEL, SETOR_LABEL } from "@/lib/constants";
 import type { Prisma, Prioridade, Setor, StatusDemanda } from "@/generated/prisma/client";
 
 const SETOR_VALUES = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"] as const;
@@ -11,6 +11,20 @@ const SETOR_VALUES = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"] as const;
 const SETOR_RESPONSAVEL_VALUES = ["ALMOXARIFADO", "FUNDICAO"] as const;
 const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 const PRIORIDADE_VALUES = ["BAIXA", "MEDIA", "ALTA"] as const;
+const PRODUTO_VALUES = [
+  "ANEL",
+  "ARGOLA",
+  "BRINCO_FIXO",
+  "BRINCO_MEDIO",
+  "CONJUNTOS",
+  "CORRENTARIA",
+  "ESCAPULARIO",
+  "GARGANTILHA",
+  "PINGENTE",
+  "PULSEIRA",
+  "TERCO",
+  "TORNOZELEIRA",
+] as const;
 
 export async function GET(request: NextRequest) {
   const auth = await requireUser();
@@ -72,6 +86,7 @@ const createSchema = z.object({
   setorResponsavel: z.enum(SETOR_RESPONSAVEL_VALUES),
   prioridade: z.enum(PRIORIDADE_VALUES).optional(),
   prazo: dataOpcional,
+  produtos: z.array(z.enum(PRODUTO_VALUES)).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -87,7 +102,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { titulo, descricao, setorResponsavel, prioridade, prazo } = parsed.data;
+  const { titulo, descricao, setorResponsavel, prioridade, prazo, produtos } = parsed.data;
   const setorSolicitante = auth.session.setor;
 
   if (setorResponsavel === setorSolicitante) {
@@ -105,6 +120,7 @@ export async function POST(request: NextRequest) {
       setorSolicitante,
       prioridade: prioridade ?? "MEDIA",
       prazo: prazo ? new Date(prazo) : null,
+      produtos: produtos ?? [],
       criadoPorId: auth.session.userId,
     },
     include: {
@@ -112,11 +128,15 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  const produtosTexto =
+    demanda.produtos.length > 0
+      ? ` Produtos: ${demanda.produtos.map((p) => PRODUTO_LABEL[p]).join(", ")}.`
+      : "";
   await registrarEvento({
     demandaId: demanda.id,
     demandaTitulo: demanda.titulo,
     tipo: "CRIADA",
-    descricao: `Demanda criada por ${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) para ${SETOR_LABEL[setorResponsavel]}, prioridade ${PRIORIDADE_LABEL[demanda.prioridade]}.`,
+    descricao: `Demanda criada por ${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) para ${SETOR_LABEL[setorResponsavel]}, prioridade ${PRIORIDADE_LABEL[demanda.prioridade]}.${produtosTexto}`,
     usuarioNome: auth.session.nome,
     usuarioSetor: auth.session.setor,
   });

@@ -1,4 +1,4 @@
-import type { Prioridade, Role, Setor, StatusDemanda, TipoEvento } from "@/generated/prisma/client";
+import type { Prioridade, Role, Setor, StatusDemanda, TipoEvento, TipoProduto } from "@/generated/prisma/client";
 
 export interface DemandaDTO {
   id: number;
@@ -9,6 +9,7 @@ export interface DemandaDTO {
   status: StatusDemanda;
   prioridade: Prioridade;
   prazo: string | null;
+  produtos: TipoProduto[];
   criadoPorId: number;
   exemplo: boolean;
   createdAt: string;

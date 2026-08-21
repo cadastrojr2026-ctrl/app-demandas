@@ -41,6 +41,21 @@ enum TipoEvento {
   EXCLUIDA
 }
 
+enum TipoProduto {
+  ANEL
+  ARGOLA
+  BRINCO_FIXO
+  BRINCO_MEDIO
+  CONJUNTOS
+  CORRENTARIA
+  ESCAPULARIO
+  GARGANTILHA
+  PINGENTE
+  PULSEIRA
+  TERCO
+  TORNOZELEIRA
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   nome      String
@@ -67,6 +82,9 @@ model Demanda {
 
   // data para quando a demanda é esperada (opcional)
   prazo DateTime?
+
+  // produtos relacionados à demanda (seleção múltipla, opcional)
+  produtos TipoProduto[] @default([])
 
   criadoPorId Int
   criadoPor   User @relation("CriadoPor", fields: [criadoPorId], references: [id])
