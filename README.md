@@ -22,6 +22,8 @@ Almoxarifado e a Fundição recebem e atendem — e o chefe acompanha tudo em um
   (só admin) lista tudo, com busca e filtro por tipo.
 - Notificação de WhatsApp quando uma demanda de prioridade Alta fica mais de 24h sem mudança de
   situação (veja a seção "Notificação de WhatsApp" abaixo).
+- Notificação de WhatsApp para o admin sempre que um usuário marca uma demanda como **Concluída**
+  (mesmo canal/configuração da notificação acima).
 
 ## Regras de permissão
 
@@ -107,18 +109,24 @@ node -e "console.log(require('bcryptjs').hashSync('nova-senha', 10))"
 ```
 e atualize o campo `senhaHash` do usuário correspondente na tabela `User`.
 
-## Notificação de WhatsApp (demandas paradas)
+## Notificação de WhatsApp
 
-Todo dia (por padrão, meio-dia UTC — ajustável em `vercel.json`), a rota
-`/api/cron/demandas-paradas` verifica se existe alguma demanda de prioridade **Alta**, ainda
-não concluída/cancelada, sem mudança de situação há mais de 24h — e envia um alerta de
-WhatsApp para cada uma (no máximo 1 alerta por demanda a cada 24h, mesmo que a checagem rode
-com mais frequência).
+Duas notificações usam o mesmo canal de WhatsApp (mesma configuração de provedor):
+
+1. **Demanda concluída** — assim que qualquer usuário muda a situação de uma demanda para
+   **Concluída**, o admin recebe um alerta na hora (`src/app/api/demandas/[id]/route.ts`). Não
+   depende de cron; dispara direto na hora que a mudança de situação é salva.
+2. **Demandas paradas** — todo dia (por padrão, meio-dia UTC — ajustável em `vercel.json`), a
+   rota `/api/cron/demandas-paradas` verifica se existe alguma demanda de prioridade **Alta**,
+   ainda não concluída/cancelada, sem mudança de situação há mais de 24h — e envia um alerta de
+   WhatsApp para cada uma (no máximo 1 alerta por demanda a cada 24h, mesmo que a checagem rode
+   com mais frequência).
 
 **Sem nenhum provedor configurado, os alertas só são registrados no log do servidor** (nada é
 enviado) — assim dá pra usar o resto do app normalmente e configurar o envio quando quiser, sem
-pressa. Tem um botão **"Testar agora"** na tela **Usuários** (admin) pra rodar a checagem na hora
-e ver o resultado.
+pressa. Tem um botão **"Testar agora"** na tela **Usuários** (admin) pra rodar a checagem de
+demandas paradas (item 2) na hora e ver o resultado; a notificação de demanda concluída (item 1)
+não precisa de teste separado — é só marcar qualquer demanda como Concluída.
 
 Para ativar o envio de verdade, escolha um provedor e defina as variáveis de ambiente
 correspondentes (local no `.env`, em produção nas *Environment Variables* do Vercel — veja o

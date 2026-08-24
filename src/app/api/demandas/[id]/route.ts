@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
-import { STATUS_LABEL } from "@/lib/constants";
+import { enviarWhatsApp } from "@/lib/whatsapp";
+import { SETOR_LABEL, STATUS_LABEL } from "@/lib/constants";
 import type { Prisma } from "@/generated/prisma/client";
 
 // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
@@ -141,6 +142,24 @@ export async function PATCH(
       descricao: `Campos atualizados (${camposAlterados}) por ${session.nome} (${session.setor}).`,
       usuarioNome: session.nome,
       usuarioSetor: session.setor,
+    });
+  }
+
+  // Demanda acabou de ser concluída (não estava concluída antes) — avisa o admin por
+  // WhatsApp. Roda depois da resposta ser enviada (after), pra não deixar o usuário
+  // esperando o envio.
+  if (data.status === "CONCLUIDA" && demanda.status !== "CONCLUIDA") {
+    after(async () => {
+      const texto =
+        `✅ Demanda concluída:\n"${atualizada.titulo}"\n` +
+        `${SETOR_LABEL[atualizada.setorSolicitante]} → ${SETOR_LABEL[atualizada.setorResponsavel]}\n` +
+        `Finalizada por ${session.nome} (${SETOR_LABEL[session.setor]}).`;
+      const resultado = await enviarWhatsApp(texto);
+      if (!resultado.enviado) {
+        console.error(
+          `[demandas] Falha ao notificar conclusão da demanda ${atualizada.id}: ${resultado.erro}`
+        );
+      }
     });
   }
 
