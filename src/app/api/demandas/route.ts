@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
+import { notificarSetor } from "@/lib/notificacoes";
 import { PRIORIDADE_LABEL, PRODUTO_LABEL, SETOR_LABEL } from "@/lib/constants";
 import type { Prisma, Prioridade, Setor, StatusDemanda } from "@/generated/prisma/client";
 
@@ -139,6 +140,14 @@ export async function POST(request: NextRequest) {
     descricao: `Demanda criada por ${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) para ${SETOR_LABEL[setorResponsavel]}, prioridade ${PRIORIDADE_LABEL[demanda.prioridade]}.${produtosTexto}`,
     usuarioNome: auth.session.nome,
     usuarioSetor: auth.session.setor,
+  });
+
+  // Avisa o setor responsável que recebeu uma nova demanda para atender.
+  await notificarSetor(setorResponsavel, {
+    mensagem: `${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) enviou uma nova demanda para o seu setor: "${demanda.titulo}".`,
+    demandaId: demanda.id,
+    demandaTitulo: demanda.titulo,
+    excluirUserId: auth.session.userId,
   });
 
   return NextResponse.json({ demanda }, { status: 201 });

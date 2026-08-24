@@ -100,7 +100,10 @@ export function FiltersBar({
         ))}
       </select>
 
-      <label className="flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+      <label
+        className="flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300"
+        title="Demandas que você criou ou que seu setor é responsável por atender"
+      >
         <input
           type="checkbox"
           checked={filters.somenteMinhas}

@@ -49,7 +49,7 @@ export function Sidebar({ session }: { session: SessionInfo }) {
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          {session.role === "ADMIN" && <NotificationBell />}
+          <NotificationBell />
           <ThemeToggle />
         </div>
       </div>
@@ -118,7 +118,7 @@ export function Sidebar({ session }: { session: SessionInfo }) {
               </p>
             </div>
             <div className="hidden items-center gap-2 md:flex">
-              {session.role === "ADMIN" && <NotificationBell abrirParaCima />}
+              <NotificationBell abrirParaCima />
               <ThemeToggle />
             </div>
           </div>

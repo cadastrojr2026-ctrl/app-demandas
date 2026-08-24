@@ -15,3 +15,15 @@ export async function GET() {
 
   return NextResponse.json({ notificacoes });
 }
+
+// Limpa (apaga) todas as notificações do usuário logado.
+export async function DELETE() {
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+
+  const { count } = await prisma.notificacao.deleteMany({
+    where: { paraUserId: auth.session.userId },
+  });
+
+  return NextResponse.json({ ok: true, count });
+}

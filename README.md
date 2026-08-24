@@ -9,7 +9,8 @@ Almoxarifado e a Fundição recebem e atendem — e o chefe acompanha tudo em um
 - Login por usuário e senha (sem cadastro público).
 - Estoque é **administrador**; Almoxarifado e Fundição são usuários comuns.
 - Cadastro manual de demandas por qualquer setor.
-- Lista com filtros (status, setor responsável, setor solicitante, prioridade, texto, "só as minhas").
+- Lista com filtros (status, setor responsável, setor solicitante, prioridade, texto, "só as
+  minhas" — demandas que você criou ou que seu setor é responsável por atender).
 - Cards de resumo para visão rápida (quantas estão pendentes, em andamento, concluídas, por setor).
 - Mudança de situação direto na lista (Pendente → Em andamento → Concluída/Cancelada).
 - Edição e exclusão (exclusão só para o administrador), sempre com confirmação.
@@ -22,9 +23,11 @@ Almoxarifado e a Fundição recebem e atendem — e o chefe acompanha tudo em um
   (só admin) lista tudo, com busca e filtro por tipo.
 - Notificação de WhatsApp quando uma demanda de prioridade Alta fica mais de 24h sem mudança de
   situação (veja a seção "Notificação de WhatsApp" abaixo).
-- Aviso pro admin sempre que um usuário marca uma demanda como **Concluída** — aparece na hora
-  no sininho 🔔 do menu (não depende de configurar nada) e, se o WhatsApp estiver configurado,
-  também chega por lá.
+- Notificações no sininho 🔔 do menu (não depende de configurar nada): o setor avisado quando
+  recebe uma nova demanda (ou quando ela é transferida pra ele) e o admin avisado quando uma
+  demanda é concluída — toca um som e, se autorizado, mostra um pop-up do navegador; se o
+  WhatsApp também estiver configurado, o aviso de conclusão chega por lá também. Dá pra marcar
+  como lida, marcar tudo como lido, remover uma notificação ou limpar todas.
 
 ## Regras de permissão
 
@@ -110,16 +113,30 @@ node -e "console.log(require('bcryptjs').hashSync('nova-senha', 10))"
 ```
 e atualize o campo `senhaHash` do usuário correspondente na tabela `User`.
 
-## Notificação de demanda concluída (no app)
+## Notificações no app (sininho 🔔)
 
-Assim que qualquer usuário muda a situação de uma demanda para **Concluída**, todos os usuários
-com papel **ADMIN** recebem um aviso na hora no sininho 🔔 do menu (desktop: rodapé do menu
-lateral; mobile: barra superior) — não depende de configurar nada, é só usar. Fica marcado como
-não lido até o admin clicar (ou usar "Marcar todas como lidas"). Implementado em
-`src/lib/notificacoes.ts` + `src/app/api/notificacoes/`; a checagem de novas notificações roda
-por polling a cada 20s enquanto o app está aberto.
+Não depende de configurar nada — funciona pra qualquer usuário assim que instala/abre o app.
+Aparece no menu (desktop: rodapé do menu lateral; mobile: barra superior), com contador de não
+lidas. Três eventos geram notificação:
 
-Quem fez a própria mudança de status não recebe aviso de si mesmo (só os outros admins).
+1. **Demanda recebida** — ao criar uma demanda, todos os usuários do setor responsável são
+   avisados ("fulano enviou uma nova demanda para o seu setor").
+2. **Demanda transferida** — se o setor responsável de uma demanda é trocado depois de criada,
+   os usuários do novo setor são avisados.
+3. **Demanda concluída** — ao mudar a situação de uma demanda para **Concluída**, todos os
+   usuários com papel **ADMIN** são avisados.
+
+Em todos os casos, quem fez a própria ação não recebe aviso de si mesmo (só os outros
+envolvidos). Dá pra marcar uma notificação como lida (clicando nela), marcar todas de uma vez,
+remover uma notificação (×) ou limpar tudo ("Limpar"). Ao chegar uma notificação nova, toca um
+som (bipe curto) e, se o navegador tiver permissão concedida, também mostra um pop-up nativo —
+**só funciona enquanto o app está aberto** (numa aba ou no PWA instalado); como o projeto não
+tem um service worker com Web Push configurado, não chega notificação com o app fechado/em
+background, diferente de um app nativo. A checagem de novidades roda por polling a cada 20s
+enquanto o app está aberto, e também ao voltar o foco pra aba.
+
+Implementado em `src/lib/notificacoes.ts`, `src/app/api/notificacoes/` (listar, marcar como
+lida, marcar todas, remover uma, limpar tudo) e `src/components/NotificationBell.tsx`.
 
 ## Notificação de WhatsApp
 

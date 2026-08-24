@@ -58,7 +58,13 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
       if (filters.setorResponsavel && d.setorResponsavel !== filters.setorResponsavel) return false;
       if (filters.setorSolicitante && d.setorSolicitante !== filters.setorSolicitante) return false;
       if (filters.prioridade && d.prioridade !== filters.prioridade) return false;
-      if (filters.somenteMinhas && d.criadoPorId !== session.userId) return false;
+      if (filters.somenteMinhas) {
+        // "Minhas" = demandas que eu criei OU que meu setor é responsável por atender —
+        // não só as criadas por mim, senão some tudo pra quem raramente cria (só recebe).
+        const souCriador = d.criadoPorId === session.userId;
+        const meuSetorResponde = d.setorResponsavel === session.setor;
+        if (!souCriador && !meuSetorResponde) return false;
+      }
       if (filters.q) {
         const termo = filters.q.toLowerCase();
         const alvo = `${d.titulo} ${d.descricao ?? ""}`.toLowerCase();
@@ -66,7 +72,7 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
       }
       return true;
     });
-  }, [demandas, filters, session.userId]);
+  }, [demandas, filters, session.userId, session.setor]);
 
   async function handleChangeStatus(demanda: DemandaDTO, status: StatusDemanda) {
     const res = await fetch(`/api/demandas/${demanda.id}`, {

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
 import { enviarWhatsApp } from "@/lib/whatsapp";
-import { notificarAdmins } from "@/lib/notificacoes";
+import { notificarAdmins, notificarSetor } from "@/lib/notificacoes";
 import { SETOR_LABEL, STATUS_LABEL } from "@/lib/constants";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -143,6 +143,16 @@ export async function PATCH(
       descricao: `Campos atualizados (${camposAlterados}) por ${session.nome} (${session.setor}).`,
       usuarioNome: session.nome,
       usuarioSetor: session.setor,
+    });
+  }
+
+  // Demanda foi reatribuída para outro setor responsável — avisa quem passou a receber.
+  if (resto.setorResponsavel && resto.setorResponsavel !== demanda.setorResponsavel) {
+    await notificarSetor(resto.setorResponsavel, {
+      mensagem: `${session.nome} (${SETOR_LABEL[session.setor]}) transferiu uma demanda para o seu setor: "${atualizada.titulo}".`,
+      demandaId: atualizada.id,
+      demandaTitulo: atualizada.titulo,
+      excluirUserId: session.userId,
     });
   }
 
