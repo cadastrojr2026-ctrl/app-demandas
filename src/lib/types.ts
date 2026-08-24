@@ -45,3 +45,12 @@ export interface HistoricoEventoDTO {
   exemplo: boolean;
   createdAt: string;
 }
+
+export interface NotificacaoDTO {
+  id: number;
+  demandaId: number | null;
+  demandaTitulo: string | null;
+  mensagem: string;
+  lida: boolean;
+  createdAt: string;
+}

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { SETOR_LABEL } from "@/lib/constants";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import type { SessionInfo } from "@/lib/types";
 
 const LINKS = [
@@ -47,7 +48,10 @@ export function Sidebar({ session }: { session: SessionInfo }) {
             JR Joias
           </span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {session.role === "ADMIN" && <NotificationBell />}
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Fundo escurecido atrás do menu, só quando aberto no mobile */}
@@ -113,7 +117,8 @@ export function Sidebar({ session }: { session: SessionInfo }) {
                 {session.role === "ADMIN" ? " · admin" : ""}
               </p>
             </div>
-            <div className="hidden md:block">
+            <div className="hidden items-center gap-2 md:flex">
+              {session.role === "ADMIN" && <NotificationBell abrirParaCima />}
               <ThemeToggle />
             </div>
           </div>

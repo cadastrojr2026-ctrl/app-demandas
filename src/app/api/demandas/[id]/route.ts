@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
 import { enviarWhatsApp } from "@/lib/whatsapp";
+import { notificarAdmins } from "@/lib/notificacoes";
 import { SETOR_LABEL, STATUS_LABEL } from "@/lib/constants";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -145,10 +146,20 @@ export async function PATCH(
     });
   }
 
-  // Demanda acabou de ser concluída (não estava concluída antes) — avisa o admin por
-  // WhatsApp. Roda depois da resposta ser enviada (after), pra não deixar o usuário
-  // esperando o envio.
+  // Demanda acabou de ser concluída (não estava concluída antes) — avisa o admin.
   if (data.status === "CONCLUIDA" && demanda.status !== "CONCLUIDA") {
+    // Notificação dentro do app: escrita rápida no banco, então espera terminar antes de
+    // responder — garante que o aviso já aparece pro admin mesmo sem WhatsApp configurado.
+    // Não notifica quem já é o próprio autor da mudança (evita avisar a si mesmo).
+    await notificarAdmins({
+      mensagem: `${session.nome} (${SETOR_LABEL[session.setor]}) marcou a demanda "${atualizada.titulo}" como concluída.`,
+      demandaId: atualizada.id,
+      demandaTitulo: atualizada.titulo,
+      excluirUserId: session.userId,
+    });
+
+    // WhatsApp (se configurado) roda depois da resposta ser enviada (after), pra não
+    // deixar o usuário esperando um envio externo que pode demorar.
     after(async () => {
       const texto =
         `✅ Demanda concluída:\n"${atualizada.titulo}"\n` +

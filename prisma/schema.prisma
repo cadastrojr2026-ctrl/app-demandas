@@ -65,7 +65,8 @@ model User {
   role      Role     @default(USER)
   createdAt DateTime @default(now())
 
-  demandasCriadas Demanda[] @relation("CriadoPor")
+  demandasCriadas Demanda[]     @relation("CriadoPor")
+  notificacoes    Notificacao[] @relation("NotificacoesRecebidas")
 }
 
 model Demanda {
@@ -102,6 +103,22 @@ model Demanda {
   @@index([status])
   @@index([setorResponsavel])
   @@index([setorSolicitante])
+}
+
+// Notificações dentro do próprio app (ex: aviso de demanda concluída para o admin) —
+// alternativa ao WhatsApp para quem não configurou nenhum provedor.
+model Notificacao {
+  id            Int      @id @default(autoincrement())
+  paraUserId    Int
+  paraUser      User     @relation("NotificacoesRecebidas", fields: [paraUserId], references: [id])
+  demandaId     Int?
+  demandaTitulo String?
+  mensagem      String
+  lida          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([paraUserId, lida])
+  @@index([createdAt])
 }
 
 // Histórico de eventos das demandas (criação, edição, mudança de status, exclusão).
