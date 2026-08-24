@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { TopBar } from "./TopBar";
+import { Sidebar } from "@/components/Sidebar";
 import { SummaryCards } from "./SummaryCards";
 import { FiltersBar, FILTROS_VAZIOS, type Filters } from "./FiltersBar";
 import { DemandasTable } from "./DemandasTable";
@@ -120,10 +120,10 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
   const temExemplos = demandas.some((d) => d.exemplo);
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
-      <TopBar session={session} />
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black md:flex-row">
+      <Sidebar session={session} />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
+      <main className="mx-auto flex w-full min-w-0 max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
         {mensagem && (
           <div className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-700 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
             {mensagem}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { TopBar } from "@/app/demandas/TopBar";
+import { Sidebar } from "@/components/Sidebar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ROLE_LABEL, SETOR_LABEL } from "@/lib/constants";
 import type { SessionInfo, UserDTO } from "@/lib/types";
@@ -97,10 +97,10 @@ export function UsuariosApp({ session }: { session: SessionInfo }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
-      <TopBar session={session} />
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black md:flex-row">
+      <Sidebar session={session} />
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
+      <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
         {mensagem && (
           <div className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-700 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
             {mensagem}
@@ -128,7 +128,61 @@ export function UsuariosApp({ session }: { session: SessionInfo }) {
         ) : erroCarregar ? (
           <p className="py-10 text-center text-sm text-red-600 dark:text-red-400">{erroCarregar}</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <>
+            {/* Cartões: telas pequenas */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {usuarios.map((u) => (
+                <div
+                  key={u.id}
+                  className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                      {u.nome}
+                      {u.id === session.userId && (
+                        <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                          você
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    <p>
+                      Usuário: <span className="text-zinc-700 dark:text-zinc-300">{u.usuario}</span>
+                    </p>
+                    <p>
+                      Setor: <span className="text-zinc-700 dark:text-zinc-300">{SETOR_LABEL[u.setor]}</span>
+                    </p>
+                    <p>
+                      Papel: <span className="text-zinc-700 dark:text-zinc-300">{ROLE_LABEL[u.role]}</span>
+                    </p>
+                    <p>
+                      Criado em: <span className="text-zinc-700 dark:text-zinc-300">{formatarData(u.createdAt)}</span>
+                    </p>
+                  </div>
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setModal({ usuario: u })}
+                      className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParaExcluir(u)}
+                      disabled={u.id === session.userId}
+                      className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/40"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tabela: telas médias e maiores */}
+            <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 md:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
@@ -180,7 +234,8 @@ export function UsuariosApp({ session }: { session: SessionInfo }) {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
 
         <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
