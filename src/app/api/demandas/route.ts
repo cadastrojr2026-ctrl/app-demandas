@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
   const somenteMinhas = searchParams.get("somenteMinhas") === "1";
 
   const where: Prisma.DemandaWhereInput = {};
+  const and: Prisma.DemandaWhereInput[] = [];
 
   if (status && (STATUS_VALUES as readonly string[]).includes(status)) {
     where.status = status as StatusDemanda;
@@ -57,10 +58,27 @@ export async function GET(request: NextRequest) {
     where.criadoPorId = auth.session.userId;
   }
   if (q) {
-    where.OR = [
-      { titulo: { contains: q } },
-      { descricao: { contains: q } },
-    ];
+    and.push({
+      OR: [
+        { titulo: { contains: q } },
+        { descricao: { contains: q } },
+      ],
+    });
+  }
+
+  // Almoxarifado e Fundição só enxergam as demandas do próprio setor (que solicitaram ou que
+  // são responsáveis por atender) — o Estoque (admin) continua vendo tudo.
+  if (auth.session.role !== "ADMIN") {
+    and.push({
+      OR: [
+        { setorSolicitante: auth.session.setor },
+        { setorResponsavel: auth.session.setor },
+      ],
+    });
+  }
+
+  if (and.length > 0) {
+    where.AND = and;
   }
 
   const demandas = await prisma.demanda.findMany({
