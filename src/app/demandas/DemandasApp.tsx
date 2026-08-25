@@ -136,7 +136,7 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
           </div>
         )}
 
-        <SummaryCards demandas={demandas} />
+        <SummaryCards demandas={demandas} session={session} />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">

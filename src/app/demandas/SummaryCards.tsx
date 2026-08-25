@@ -8,14 +8,20 @@ import {
   STATUS_LABEL,
   STATUS_ORDER,
 } from "@/lib/constants";
-import type { DemandaDTO } from "@/lib/types";
+import type { DemandaDTO, SessionInfo } from "@/lib/types";
 
-export function SummaryCards({ demandas }: { demandas: DemandaDTO[] }) {
+export function SummaryCards({ demandas, session }: { demandas: DemandaDTO[]; session: SessionInfo }) {
   const porStatus = useMemo(() => {
     const contagem = { PENDENTE: 0, EM_ANDAMENTO: 0, CONCLUIDA: 0, CANCELADA: 0 };
     for (const d of demandas) contagem[d.status]++;
     return contagem;
   }, [demandas]);
+
+  // Admin (Estoque) vê o card de cada setor; Almoxarifado e Fundição veem só o próprio.
+  const setoresExibidos =
+    session.role === "ADMIN"
+      ? SETORES_RESPONSAVEL
+      : SETORES_RESPONSAVEL.filter((s) => s === session.setor);
 
   const porSetorResponsavel = useMemo(() => {
     const contagem: Record<string, { abertas: number; total: number }> = {};
@@ -54,7 +60,7 @@ export function SummaryCards({ demandas }: { demandas: DemandaDTO[] }) {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {SETORES_RESPONSAVEL.map((setor) => {
+        {setoresExibidos.map((setor) => {
           const c = porSetorResponsavel[setor];
           return (
             <div
