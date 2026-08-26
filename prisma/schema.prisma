@@ -135,6 +135,14 @@ model HistoricoEvento {
   exemplo        Boolean    @default(false)
   createdAt      DateTime   @default(now())
 
+  // setores da demanda no momento do evento (desnormalizado, como demandaTitulo) — usado
+  // para restringir o histórico de usuários não-admin às demandas do próprio setor. Nulo em
+  // eventos antigos, gravados antes desses campos existirem.
+  demandaSetorSolicitante Setor?
+  demandaSetorResponsavel Setor?
+
   @@index([demandaId])
   @@index([createdAt])
+  @@index([demandaSetorSolicitante])
+  @@index([demandaSetorResponsavel])
 }

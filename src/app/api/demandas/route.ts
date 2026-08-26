@@ -158,6 +158,8 @@ export async function POST(request: NextRequest) {
     descricao: `Demanda criada por ${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) para ${SETOR_LABEL[setorResponsavel]}, prioridade ${PRIORIDADE_LABEL[demanda.prioridade]}.${produtosTexto}`,
     usuarioNome: auth.session.nome,
     usuarioSetor: auth.session.setor,
+    demandaSetorSolicitante: demanda.setorSolicitante,
+    demandaSetorResponsavel: demanda.setorResponsavel,
   });
 
   // Avisa o setor responsável que recebeu uma nova demanda para atender.

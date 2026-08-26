@@ -25,13 +25,19 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
   const [erro, setErro] = useState<string | null>(null);
   const [tipo, setTipo] = useState<TipoEvento | "">("");
   const [q, setQ] = useState("");
+  const [desde, setDesde] = useState("");
+  const [ate, setAte] = useState("");
 
   useEffect(() => {
     (async () => {
       setCarregando(true);
       setErro(null);
       try {
-        const res = await fetch("/api/historico");
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (ate) params.set("ate", ate);
+        const query = params.toString();
+        const res = await fetch(`/api/historico${query ? `?${query}` : ""}`);
         if (!res.ok) throw new Error("Falha ao carregar histórico.");
         const data = await res.json();
         setEventos(data.eventos);
@@ -41,7 +47,7 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
         setCarregando(false);
       }
     })();
-  }, []);
+  }, [desde, ate]);
 
   const filtrados = useMemo(() => {
     return eventos.filter((ev) => {
@@ -66,7 +72,9 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
               Histórico de demandas
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Registro de criação, edição, mudança de situação e exclusão de demandas.
+              {session.role === "ADMIN"
+                ? "Registro de criação, edição, mudança de situação e exclusão de demandas."
+                : "Registro de criação, edição, mudança de situação e exclusão das demandas do seu setor."}
             </p>
           </div>
           <Link
@@ -97,6 +105,36 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
               </option>
             ))}
           </select>
+          <label className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+            De
+            <input
+              type="date"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+            Até
+            <input
+              type="date"
+              value={ate}
+              onChange={(e) => setAte(e.target.value)}
+              className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+          </label>
+          {(desde || ate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setDesde("");
+                setAte("");
+              }}
+              className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
+            >
+              Limpar período
+            </button>
+          )}
         </div>
 
         {carregando ? (

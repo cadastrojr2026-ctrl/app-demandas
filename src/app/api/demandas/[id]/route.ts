@@ -103,6 +103,14 @@ export async function PATCH(
     );
   }
 
+  // Só o administrador (Estoque) pode marcar uma demanda como concluída.
+  if (parsed.data.status === "CONCLUIDA" && !isAdmin) {
+    return NextResponse.json(
+      { error: "Somente o administrador pode marcar uma demanda como concluída." },
+      { status: 403 }
+    );
+  }
+
   const { prazo, ...resto } = parsed.data;
   const data: Prisma.DemandaUpdateInput = { ...resto };
   if ("prazo" in parsed.data) {
@@ -133,6 +141,8 @@ export async function PATCH(
       descricao: `Situação alterada de "${STATUS_LABEL[demanda.status]}" para "${STATUS_LABEL[atualizada.status]}" por ${session.nome} (${session.setor}).`,
       usuarioNome: session.nome,
       usuarioSetor: session.setor,
+      demandaSetorSolicitante: atualizada.setorSolicitante,
+      demandaSetorResponsavel: atualizada.setorResponsavel,
     });
   } else {
     const camposAlterados = changedKeys.map((k) => CAMPO_LABEL[k] ?? k).join(", ");
@@ -143,6 +153,8 @@ export async function PATCH(
       descricao: `Campos atualizados (${camposAlterados}) por ${session.nome} (${session.setor}).`,
       usuarioNome: session.nome,
       usuarioSetor: session.setor,
+      demandaSetorSolicitante: atualizada.setorSolicitante,
+      demandaSetorResponsavel: atualizada.setorResponsavel,
     });
   }
 
@@ -210,6 +222,8 @@ export async function DELETE(
     descricao: `Demanda excluída por ${auth.session.nome} (${auth.session.setor}).`,
     usuarioNome: auth.session.nome,
     usuarioSetor: auth.session.setor,
+    demandaSetorSolicitante: demanda.setorSolicitante,
+    demandaSetorResponsavel: demanda.setorResponsavel,
   });
 
   return NextResponse.json({ ok: true });

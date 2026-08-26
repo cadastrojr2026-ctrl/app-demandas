@@ -9,6 +9,8 @@ export async function registrarEvento(params: {
   descricao: string;
   usuarioNome: string;
   usuarioSetor: Setor;
+  demandaSetorSolicitante: Setor;
+  demandaSetorResponsavel: Setor;
 }) {
   await prisma.historicoEvento.create({
     data: {
@@ -18,6 +20,8 @@ export async function registrarEvento(params: {
       descricao: params.descricao,
       usuarioNome: params.usuarioNome,
       usuarioSetor: params.usuarioSetor,
+      demandaSetorSolicitante: params.demandaSetorSolicitante,
+      demandaSetorResponsavel: params.demandaSetorResponsavel,
     },
   });
 }

@@ -74,6 +74,11 @@ export function DemandasTable({
           const canEditFull = isAdmin || isCriador;
           const canChangeStatus = canEditFull || isResponsavel;
           const canDelete = isAdmin;
+          // Só o admin pode marcar como concluída; mantém a opção visível se já estiver
+          // concluída (senão o <select> ficaria sem opção correspondente ao valor atual).
+          const statusSelecionaveis = STATUS_ORDER.filter(
+            (s) => s !== "CONCLUIDA" || isAdmin || d.status === "CONCLUIDA"
+          );
 
           return (
             <div
@@ -156,7 +161,7 @@ export function DemandasTable({
                   className={`rounded-full border-0 px-2 py-1 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-70 ${STATUS_BADGE_CLASS[d.status]}`}
                   title={canChangeStatus ? "Alterar situação" : "Você não pode alterar esta demanda"}
                 >
-                  {STATUS_ORDER.map((s) => (
+                  {statusSelecionaveis.map((s) => (
                     <option key={s} value={s}>
                       {STATUS_LABEL[s]}
                     </option>
@@ -217,6 +222,11 @@ export function DemandasTable({
             const canEditFull = isAdmin || isCriador;
             const canChangeStatus = canEditFull || isResponsavel;
             const canDelete = isAdmin;
+            // Só o admin pode marcar como concluída; mantém a opção visível se já estiver
+            // concluída (senão o <select> ficaria sem opção correspondente ao valor atual).
+            const statusSelecionaveis = STATUS_ORDER.filter(
+              (s) => s !== "CONCLUIDA" || isAdmin || d.status === "CONCLUIDA"
+            );
 
             return (
               <tr
@@ -292,7 +302,7 @@ export function DemandasTable({
                     className={`rounded-full border-0 px-2 py-1 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-70 ${STATUS_BADGE_CLASS[d.status]}`}
                     title={canChangeStatus ? "Alterar situação" : "Você não pode alterar esta demanda"}
                   >
-                    {STATUS_ORDER.map((s) => (
+                    {statusSelecionaveis.map((s) => (
                       <option key={s} value={s}>
                         {STATUS_LABEL[s]}
                       </option>

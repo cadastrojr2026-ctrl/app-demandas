@@ -194,6 +194,8 @@ async function main() {
         usuarioNome: nomePorSetor.ESTOQUE,
         usuarioSetor: "ESTOQUE",
         exemplo: true,
+        demandaSetorSolicitante: demandasCriadas[0].setorSolicitante,
+        demandaSetorResponsavel: demandasCriadas[0].setorResponsavel,
       },
       {
         demandaId: demandasCriadas[1].id,
@@ -203,6 +205,8 @@ async function main() {
         usuarioNome: nomePorSetor.ALMOXARIFADO,
         usuarioSetor: "ALMOXARIFADO",
         exemplo: true,
+        demandaSetorSolicitante: demandasCriadas[1].setorSolicitante,
+        demandaSetorResponsavel: demandasCriadas[1].setorResponsavel,
       },
       {
         demandaId: demandasCriadas[3].id,
@@ -212,6 +216,8 @@ async function main() {
         usuarioNome: nomePorSetor.FUNDICAO,
         usuarioSetor: "FUNDICAO",
         exemplo: true,
+        demandaSetorSolicitante: demandasCriadas[3].setorSolicitante,
+        demandaSetorResponsavel: demandasCriadas[3].setorResponsavel,
       },
       {
         demandaId: demandasCriadas[6].id,
@@ -221,6 +227,8 @@ async function main() {
         usuarioNome: nomePorSetor.ESTOQUE,
         usuarioSetor: "ESTOQUE",
         exemplo: true,
+        demandaSetorSolicitante: demandasCriadas[6].setorSolicitante,
+        demandaSetorResponsavel: demandasCriadas[6].setorResponsavel,
       },
       {
         demandaId: demandasCriadas[6].id,
@@ -230,6 +238,8 @@ async function main() {
         usuarioNome: nomePorSetor.ESTOQUE,
         usuarioSetor: "ESTOQUE",
         exemplo: true,
+        demandaSetorSolicitante: demandasCriadas[6].setorSolicitante,
+        demandaSetorResponsavel: demandasCriadas[6].setorResponsavel,
       },
     ],
   });

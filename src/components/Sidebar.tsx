@@ -10,7 +10,7 @@ import type { SessionInfo } from "@/lib/types";
 
 const LINKS = [
   { href: "/demandas", label: "Demandas", adminOnly: false },
-  { href: "/historico", label: "Histórico", adminOnly: true },
+  { href: "/historico", label: "Histórico", adminOnly: false },
   { href: "/usuarios", label: "Usuários", adminOnly: true },
 ] as const;
 
