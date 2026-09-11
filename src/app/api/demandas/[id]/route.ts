@@ -94,9 +94,14 @@ export async function PATCH(
   const canEditFull = isAdmin || isCriador;
   const canChangeStatus = canEditFull || isResponsavel;
 
+  // Quem não pode editar a demanda inteira (não é admin nem criador), mas é do setor
+  // responsável por atendê-la, ainda pode mudar o status (já valia) e agora também
+  // editar só a observação — sem tocar em título, descrição, prazo, etc.
+  const CAMPOS_RESTRITOS = new Set(["status", "observacao"]);
   const changedKeys = Object.keys(parsed.data);
   const somenteStatus = changedKeys.length === 1 && changedKeys[0] === "status";
-  const permitido = somenteStatus ? canChangeStatus : canEditFull;
+  const somenteCampoRestrito = changedKeys.length === 1 && CAMPOS_RESTRITOS.has(changedKeys[0]);
+  const permitido = somenteCampoRestrito ? canChangeStatus : canEditFull;
 
   if (!permitido) {
     return NextResponse.json(

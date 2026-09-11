@@ -185,7 +185,8 @@ export function DemandasTable({
                   <button
                     type="button"
                     onClick={() => onEdit(d)}
-                    disabled={!canEditFull}
+                    disabled={!canChangeStatus}
+                    title={canEditFull ? undefined : canChangeStatus ? "Você só pode editar a observação" : undefined}
                     className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
                   >
                     Editar
@@ -336,7 +337,8 @@ export function DemandasTable({
                     <button
                       type="button"
                       onClick={() => onEdit(d)}
-                      disabled={!canEditFull}
+                      disabled={!canChangeStatus}
+                      title={canEditFull ? undefined : canChangeStatus ? "Você só pode editar a observação" : undefined}
                       className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
                     >
                       Editar

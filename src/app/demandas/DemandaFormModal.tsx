@@ -27,6 +27,14 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
   const setorSolicitante = editando ? demanda!.setorSolicitante : session.setor;
   const setoresDestino = SETORES_RESPONSAVEL.filter((s) => s !== setorSolicitante);
 
+  // Quem não é admin nem criou a demanda, mas é do setor responsável por atendê-la, só pode
+  // editar a observação — os outros campos ficam travados (mesma regra da API).
+  const isAdmin = session.role === "ADMIN";
+  const isCriador = editando ? demanda!.criadoPorId === session.userId : true;
+  const isResponsavel = editando ? demanda!.setorResponsavel === session.setor : false;
+  const canEditFull = !editando || isAdmin || isCriador;
+  const somenteObservacao = editando && !canEditFull && isResponsavel;
+
   const [titulo, setTitulo] = useState(demanda?.titulo ?? "");
   const [descricao, setDescricao] = useState(demanda?.descricao ?? "");
   const [observacao, setObservacao] = useState(demanda?.observacao ?? "");
@@ -56,15 +64,17 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
     setErro(null);
     setSalvando(true);
     try {
-      const payload = {
-        titulo,
-        descricao: descricao || null,
-        observacao: observacao || null,
-        setorResponsavel,
-        prioridade,
-        prazo: prazo || null,
-        produtos: Array.from(produtos),
-      };
+      const payload = somenteObservacao
+        ? { observacao: observacao || null }
+        : {
+            titulo,
+            descricao: descricao || null,
+            observacao: observacao || null,
+            setorResponsavel,
+            prioridade,
+            prazo: prazo || null,
+            produtos: Array.from(produtos),
+          };
       const res = await fetch(editando ? `/api/demandas/${demanda!.id}` : "/api/demandas", {
         method: editando ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,6 +103,12 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
           {editando ? "Editar demanda" : "Nova demanda"}
         </h2>
 
+        {somenteObservacao && (
+          <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+            Você só pode editar a observação desta demanda. Os outros campos são só leitura.
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="titulo" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -103,10 +119,11 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
               required
               minLength={3}
               maxLength={200}
-              autoFocus
+              autoFocus={!somenteObservacao}
+              disabled={somenteObservacao}
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
               placeholder="Ex: Reposição de arame de latão 0,8mm"
             />
           </div>
@@ -119,9 +136,10 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
               id="descricao"
               rows={3}
               maxLength={2000}
+              disabled={somenteObservacao}
               value={descricao ?? ""}
               onChange={(e) => setDescricao(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
               placeholder="Detalhes da demanda..."
             />
           </div>
@@ -140,9 +158,10 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
               </label>
               <select
                 id="setorResponsavel"
+                disabled={somenteObservacao}
                 value={setorResponsavel}
                 onChange={(e) => setSetorResponsavel(e.target.value as Setor)}
-                className={inputClass}
+                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {setoresDestino.map((s) => (
                   <option key={s} value={s}>
@@ -160,9 +179,10 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
               </label>
               <select
                 id="prioridade"
+                disabled={somenteObservacao}
                 value={prioridade}
                 onChange={(e) => setPrioridade(e.target.value as Prioridade)}
-                className={inputClass}
+                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {PRIORIDADE_ORDER.map((p) => (
                   <option key={p} value={p}>
@@ -179,9 +199,10 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
               <input
                 id="prazo"
                 type="date"
+                disabled={somenteObservacao}
                 value={prazo}
                 onChange={(e) => setPrazo(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
               />
             </div>
           </div>
@@ -200,9 +221,10 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
                   <button
                     key={produto}
                     type="button"
+                    disabled={somenteObservacao}
                     onClick={() => alternarProduto(produto)}
                     aria-pressed={selecionado}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                       selecionado
                         ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
                         : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -223,6 +245,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
               id="observacao"
               rows={2}
               maxLength={2000}
+              autoFocus={somenteObservacao}
               value={observacao ?? ""}
               onChange={(e) => setObservacao(e.target.value)}
               className={inputClass}
@@ -249,7 +272,13 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
               disabled={salvando}
               className="rounded-lg bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
             >
-              {salvando ? "Salvando..." : editando ? "Salvar alterações" : "Criar demanda"}
+              {salvando
+                ? "Salvando..."
+                : somenteObservacao
+                  ? "Salvar observação"
+                  : editando
+                    ? "Salvar alterações"
+                    : "Criar demanda"}
             </button>
           </div>
         </form>
