@@ -108,7 +108,7 @@ export function DemandasTable({
               )}
 
               {d.observacao && (
-                <p className="mt-1 line-clamp-2 text-xs italic text-zinc-500 dark:text-zinc-400">
+                <p className="mt-1 line-clamp-2 text-xs text-red-600 dark:text-red-400">
                   Obs: {d.observacao}
                 </p>
               )}
@@ -254,7 +254,7 @@ export function DemandasTable({
                     </p>
                   )}
                   {d.observacao && (
-                    <p className="mt-0.5 line-clamp-2 text-xs italic text-zinc-500 dark:text-zinc-400">
+                    <p className="mt-0.5 line-clamp-2 text-xs text-red-600 dark:text-red-400">
                       Obs: {d.observacao}
                     </p>
                   )}
