@@ -14,8 +14,8 @@ const COLUNAS = [
   { titulo: "Responsável", x: 300, largura: 75 },
   { titulo: "Prioridade", x: 380, largura: 60 },
   { titulo: "Prazo", x: 445, largura: 55 },
-  { titulo: "Status", x: 505, largura: 70 },
-  { titulo: "Criado por / em", x: 580, largura: 130 },
+  { titulo: "Status", x: 505, largura: 85 },
+  { titulo: "Criado por / em", x: 595, largura: 115 },
 ];
 
 function formatarData(d: Date) {
@@ -54,11 +54,15 @@ export async function GET(request: NextRequest) {
   const limiteY = doc.page.height - doc.page.margins.bottom;
 
   function cabecalho() {
+    // Usa um y fixo (capturado antes do loop) pra todas as colunas — chamar doc.text() move
+    // doc.y pra baixo do texto desenhado, então usar "doc.y" dentro do loop faz cada título
+    // ficar mais baixo que o anterior (título indo em "escada" em vez de alinhado).
     doc.fontSize(9).fillColor("#57534e");
+    const headerY = doc.y;
     for (const c of COLUNAS) {
-      doc.text(c.titulo, c.x, doc.y, { width: c.largura });
+      doc.text(c.titulo, c.x, headerY, { width: c.largura });
     }
-    const y = doc.y + 12;
+    const y = headerY + 12;
     doc
       .moveTo(40, y)
       .lineTo(doc.page.width - doc.page.margins.right, y)
@@ -115,8 +119,8 @@ export async function GET(request: NextRequest) {
     doc.text(SETOR_LABEL[d.setorResponsavel], COLUNAS[2].x, y, { width: COLUNAS[2].largura });
     doc.text(PRIORIDADE_LABEL[d.prioridade], COLUNAS[3].x, y, { width: COLUNAS[3].largura });
     doc.text(d.prazo ? formatarPrazo(d.prazo) : "—", COLUNAS[4].x, y, { width: COLUNAS[4].largura });
-    doc.text(STATUS_LABEL[d.status], COLUNAS[5].x, y, { width: COLUNAS[5].largura });
-    doc.text(`${d.criadoPor.nome}\n${formatarData(d.createdAt)}`, COLUNAS[6].x, y, { width: COLUNAS[6].largura });
+    doc.font("Helvetica-Bold").text(STATUS_LABEL[d.status], COLUNAS[5].x, y, { width: COLUNAS[5].largura });
+    doc.font("Helvetica").text(`${d.criadoPor.nome}\n${formatarData(d.createdAt)}`, COLUNAS[6].x, y, { width: COLUNAS[6].largura });
 
     doc.y = y + alturaLinha;
   }
