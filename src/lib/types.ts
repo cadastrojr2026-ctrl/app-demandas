@@ -4,6 +4,7 @@ export interface DemandaDTO {
   id: number;
   titulo: string;
   descricao: string | null;
+  observacao: string | null;
   setorSolicitante: Setor;
   setorResponsavel: Setor;
   status: StatusDemanda;

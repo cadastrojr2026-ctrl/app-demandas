@@ -12,7 +12,7 @@ import type { DemandaDTO, SessionInfo } from "@/lib/types";
 
 export function SummaryCards({ demandas, session }: { demandas: DemandaDTO[]; session: SessionInfo }) {
   const porStatus = useMemo(() => {
-    const contagem = { PENDENTE: 0, EM_ANDAMENTO: 0, CONCLUIDA: 0, CANCELADA: 0 };
+    const contagem = { PENDENTE: 0, EM_ANDAMENTO: 0, ENTREGUE: 0, CONCLUIDA: 0, CANCELADA: 0 };
     for (const d of demandas) contagem[d.status]++;
     return contagem;
   }, [demandas]);
@@ -30,7 +30,7 @@ export function SummaryCards({ demandas, session }: { demandas: DemandaDTO[]; se
       const c = contagem[d.setorResponsavel];
       if (!c) continue;
       c.total++;
-      if (d.status === "PENDENTE" || d.status === "EM_ANDAMENTO") c.abertas++;
+      if (d.status === "PENDENTE" || d.status === "EM_ANDAMENTO" || d.status === "ENTREGUE") c.abertas++;
     }
     return contagem;
   }, [demandas]);

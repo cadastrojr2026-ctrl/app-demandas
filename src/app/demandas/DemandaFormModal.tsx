@@ -29,6 +29,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
 
   const [titulo, setTitulo] = useState(demanda?.titulo ?? "");
   const [descricao, setDescricao] = useState(demanda?.descricao ?? "");
+  const [observacao, setObservacao] = useState(demanda?.observacao ?? "");
   const [setorResponsavel, setSetorResponsavel] = useState<Setor>(
     demanda?.setorResponsavel ?? setoresDestino[0]
   );
@@ -58,6 +59,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
       const payload = {
         titulo,
         descricao: descricao || null,
+        observacao: observacao || null,
         setorResponsavel,
         prioridade,
         prazo: prazo || null,
@@ -211,6 +213,21 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
                 );
               })}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="observacao" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Observação (opcional)
+            </label>
+            <textarea
+              id="observacao"
+              rows={2}
+              maxLength={2000}
+              value={observacao ?? ""}
+              onChange={(e) => setObservacao(e.target.value)}
+              className={inputClass}
+              placeholder="Ex: entregue parcialmente, aguardando o restante..."
+            />
           </div>
 
           {erro && (

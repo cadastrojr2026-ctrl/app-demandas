@@ -4,13 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
 import { notificarSetor } from "@/lib/notificacoes";
+import { buildDemandasWhere } from "@/lib/demandasFiltro";
 import { PRIORIDADE_LABEL, PRODUTO_LABEL, SETOR_LABEL } from "@/lib/constants";
-import type { Prisma, Prioridade, Setor, StatusDemanda } from "@/generated/prisma/client";
 
-const SETOR_VALUES = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"] as const;
 // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
 const SETOR_RESPONSAVEL_VALUES = ["ALMOXARIFADO", "FUNDICAO"] as const;
-const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
 const PRIORIDADE_VALUES = ["BAIXA", "MEDIA", "ALTA"] as const;
 const PRODUTO_VALUES = [
   "ANEL",
@@ -32,54 +30,7 @@ export async function GET(request: NextRequest) {
   if ("error" in auth) return auth.error;
 
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status");
-  const setorResponsavel = searchParams.get("setorResponsavel");
-  const setorSolicitante = searchParams.get("setorSolicitante");
-  const prioridade = searchParams.get("prioridade");
-  const q = searchParams.get("q")?.trim();
-  const somenteMinhas = searchParams.get("somenteMinhas") === "1";
-
-  const where: Prisma.DemandaWhereInput = {};
-  const and: Prisma.DemandaWhereInput[] = [];
-
-  if (status && (STATUS_VALUES as readonly string[]).includes(status)) {
-    where.status = status as StatusDemanda;
-  }
-  if (setorResponsavel && (SETOR_VALUES as readonly string[]).includes(setorResponsavel)) {
-    where.setorResponsavel = setorResponsavel as Setor;
-  }
-  if (setorSolicitante && (SETOR_VALUES as readonly string[]).includes(setorSolicitante)) {
-    where.setorSolicitante = setorSolicitante as Setor;
-  }
-  if (prioridade && (PRIORIDADE_VALUES as readonly string[]).includes(prioridade)) {
-    where.prioridade = prioridade as Prioridade;
-  }
-  if (somenteMinhas) {
-    where.criadoPorId = auth.session.userId;
-  }
-  if (q) {
-    and.push({
-      OR: [
-        { titulo: { contains: q } },
-        { descricao: { contains: q } },
-      ],
-    });
-  }
-
-  // Almoxarifado e Fundição só enxergam as demandas do próprio setor (que solicitaram ou que
-  // são responsáveis por atender) — o Estoque (admin) continua vendo tudo.
-  if (auth.session.role !== "ADMIN") {
-    and.push({
-      OR: [
-        { setorSolicitante: auth.session.setor },
-        { setorResponsavel: auth.session.setor },
-      ],
-    });
-  }
-
-  if (and.length > 0) {
-    where.AND = and;
-  }
+  const where = buildDemandasWhere(searchParams, auth.session);
 
   const demandas = await prisma.demanda.findMany({
     where,
@@ -102,6 +53,7 @@ const dataOpcional = z
 const createSchema = z.object({
   titulo: z.string().trim().min(3, "Título muito curto.").max(200),
   descricao: z.string().trim().max(2000).optional().nullable(),
+  observacao: z.string().trim().max(2000).optional().nullable(),
   setorResponsavel: z.enum(SETOR_RESPONSAVEL_VALUES),
   prioridade: z.enum(PRIORIDADE_VALUES).optional(),
   prazo: dataOpcional,
@@ -121,7 +73,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { titulo, descricao, setorResponsavel, prioridade, prazo, produtos } = parsed.data;
+  const { titulo, descricao, observacao, setorResponsavel, prioridade, prazo, produtos } = parsed.data;
   const setorSolicitante = auth.session.setor;
 
   if (setorResponsavel === setorSolicitante) {
@@ -135,6 +87,7 @@ export async function POST(request: NextRequest) {
     data: {
       titulo,
       descricao: descricao || null,
+      observacao: observacao || null,
       setorResponsavel,
       setorSolicitante,
       prioridade: prioridade ?? "MEDIA",

@@ -125,6 +125,17 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
 
   const temExemplos = demandas.some((d) => d.exemplo);
 
+  function handleGerarPdf() {
+    const params = new URLSearchParams();
+    if (filters.status) params.set("status", filters.status);
+    if (filters.setorResponsavel) params.set("setorResponsavel", filters.setorResponsavel);
+    if (filters.setorSolicitante) params.set("setorSolicitante", filters.setorSolicitante);
+    if (filters.prioridade) params.set("prioridade", filters.prioridade);
+    if (filters.q) params.set("q", filters.q);
+    if (filters.somenteMinhas) params.set("somenteMinhas", "1");
+    window.open(`/api/demandas/pdf?${params.toString()}`, "_blank");
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black md:flex-row">
       <Sidebar session={session} />
@@ -143,6 +154,13 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
             Demandas ({demandasFiltradas.length})
           </h2>
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleGerarPdf}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              Gerar PDF
+            </button>
             {session.role === "ADMIN" && temExemplos && (
               <button
                 type="button"

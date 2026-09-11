@@ -24,6 +24,7 @@ enum Role {
 enum StatusDemanda {
   PENDENTE
   EM_ANDAMENTO
+  ENTREGUE
   CONCLUIDA
   CANCELADA
 }
@@ -73,6 +74,10 @@ model Demanda {
   id       Int    @id @default(autoincrement())
   titulo   String
   descricao String?
+
+  // nota livre sobre a demanda (ex: detalhe da entrega, ressalva do atendimento) —
+  // diferente da descrição, que é o pedido em si.
+  observacao String?
 
   // setor que está solicitando (origem) e setor que deve atender (responsável)
   setorSolicitante Setor

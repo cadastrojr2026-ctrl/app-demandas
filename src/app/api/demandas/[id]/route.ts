@@ -10,7 +10,7 @@ import type { Prisma } from "@/generated/prisma/client";
 
 // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
 const SETOR_RESPONSAVEL_VALUES = ["ALMOXARIFADO", "FUNDICAO"] as const;
-const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"] as const;
+const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "ENTREGUE", "CONCLUIDA", "CANCELADA"] as const;
 const PRIORIDADE_VALUES = ["BAIXA", "MEDIA", "ALTA"] as const;
 const PRODUTO_VALUES = [
   "ANEL",
@@ -38,6 +38,7 @@ const patchSchema = z
   .object({
     titulo: z.string().trim().min(3, "Título muito curto.").max(200).optional(),
     descricao: z.string().trim().max(2000).optional().nullable(),
+    observacao: z.string().trim().max(2000).optional().nullable(),
     setorResponsavel: z.enum(SETOR_RESPONSAVEL_VALUES).optional(),
     prioridade: z.enum(PRIORIDADE_VALUES).optional(),
     prazo: dataOpcional,
@@ -49,6 +50,7 @@ const patchSchema = z
 const CAMPO_LABEL: Record<string, string> = {
   titulo: "título",
   descricao: "descrição",
+  observacao: "observação",
   setorResponsavel: "setor responsável",
   prioridade: "prioridade",
   prazo: "prazo",

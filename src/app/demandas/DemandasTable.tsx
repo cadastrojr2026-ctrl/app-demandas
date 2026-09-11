@@ -107,6 +107,12 @@ export function DemandasTable({
                 </p>
               )}
 
+              {d.observacao && (
+                <p className="mt-1 line-clamp-2 text-xs italic text-zinc-500 dark:text-zinc-400">
+                  Obs: {d.observacao}
+                </p>
+              )}
+
               {d.produtos.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {d.produtos.map((p) => (
@@ -245,6 +251,11 @@ export function DemandasTable({
                   {d.descricao && (
                     <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
                       {d.descricao}
+                    </p>
+                  )}
+                  {d.observacao && (
+                    <p className="mt-0.5 line-clamp-2 text-xs italic text-zinc-500 dark:text-zinc-400">
+                      Obs: {d.observacao}
                     </p>
                   )}
                   {d.produtos.length > 0 && (
