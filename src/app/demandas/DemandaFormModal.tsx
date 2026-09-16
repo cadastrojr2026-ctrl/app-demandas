@@ -124,7 +124,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+        className="max-h-full w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
@@ -172,7 +172,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Solicitante</span>
               <p className="rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
@@ -200,7 +200,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="prioridade" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Prioridade
