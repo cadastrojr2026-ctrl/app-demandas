@@ -1,8 +1,9 @@
 // Gera o PDF de uma lista de demandas — mesmo formato usado tanto no "Gerar PDF" da tela de
 // Demandas quanto no da tela de Produção, pra nunca os dois divergirem visualmente. Mostra a
-// tabela de demandas por inteiro (sem truncar descrição/observação/produtos) e, no fim, os
-// totalizadores: quantas demandas, quantas peças produzidas (soma dos itens) e quantos
-// códigos de peça diferentes.
+// tabela de demandas por inteiro (sem truncar descrição/observação/produtos), com status e
+// prioridade como selos coloridos (mesmas cores da tela), linhas zebradas pra facilitar a
+// leitura, e termina com três cartões de resumo: quantas demandas, quantas peças produzidas
+// (soma dos itens) e quantos códigos de peça diferentes.
 import PDFDocument from "pdfkit";
 import { PRIORIDADE_LABEL, PRODUTO_LABEL, SETOR_LABEL, STATUS_LABEL } from "@/lib/constants";
 import type { Prioridade, Setor, StatusDemanda, TipoProduto } from "@/generated/prisma/client";
@@ -21,6 +22,22 @@ export interface DemandaParaPdf {
   criadoPor: { nome: string };
   itens: { codigo: string; quantidade: number }[];
 }
+
+// Mesmas cores dos selos da tela (STATUS_BADGE_CLASS / PRIORIDADE_BADGE_CLASS em
+// src/lib/constants.ts), só que em hex — o pdfkit não entende classes Tailwind.
+const COR_STATUS: Record<StatusDemanda, { fundo: string; texto: string }> = {
+  PENDENTE: { fundo: "#fef3c7", texto: "#92400e" },
+  EM_ANDAMENTO: { fundo: "#dbeafe", texto: "#1e40af" },
+  ENTREGUE: { fundo: "#ede9fe", texto: "#5b21b6" },
+  CONCLUIDA: { fundo: "#d1fae5", texto: "#065f46" },
+  CANCELADA: { fundo: "#e5e5e5", texto: "#404040" },
+};
+
+const COR_PRIORIDADE: Record<Prioridade, { fundo: string; texto: string }> = {
+  ALTA: { fundo: "#fee2e2", texto: "#991b1b" },
+  MEDIA: { fundo: "#e0f2fe", texto: "#075985" },
+  BAIXA: { fundo: "#f5f5f5", texto: "#404040" },
+};
 
 const COLUNAS = [
   { titulo: "Demanda", x: 40, largura: 175 },
@@ -54,32 +71,66 @@ export async function gerarPdfDemandas(
   doc.on("data", (parte) => partes.push(parte));
   const finalizado = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(partes))));
 
+  const margemEsq = doc.page.margins.left;
+  const margemDir = doc.page.margins.right;
+  const larguraConteudo = doc.page.width - margemEsq - margemDir;
   const limiteY = doc.page.height - doc.page.margins.bottom;
 
-  function cabecalho() {
+  // Selo colorido (status/prioridade) — largura do próprio texto, não da coluna, pra parecer
+  // uma etiqueta de verdade em vez de uma barra esticada.
+  function selo(texto: string, x: number, y: number, cor: { fundo: string; texto: string }) {
+    doc.font("Helvetica-Bold").fontSize(8);
+    const largura = doc.widthOfString(texto) + 12;
+    doc.roundedRect(x, y, largura, 15, 7.5).fill(cor.fundo);
+    doc.fillColor(cor.texto).text(texto, x, y + 3.3, { width: largura, align: "center" });
+    doc.font("Helvetica");
+  }
+
+  function cabecalhoPagina() {
+    // Faixa dourada no topo — só um toque de marca, discreto.
+    doc.rect(0, 0, doc.page.width, 5).fill("#b45309");
+
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#a8a29e").text("JR JOIAS FOLHEADAS", margemEsq, 28);
+    doc.font("Helvetica-Bold").fontSize(20).fillColor("#1c1917").text(opcoes.titulo, margemEsq, 42);
+    doc.font("Helvetica").fontSize(9).fillColor("#78716c").text(opcoes.subtitulo, margemEsq, 68);
+
+    doc
+      .moveTo(margemEsq, 86)
+      .lineTo(doc.page.width - margemDir, 86)
+      .lineWidth(1.2)
+      .strokeColor("#1c1917")
+      .stroke();
+    doc.lineWidth(1);
+    doc.y = 96;
+  }
+
+  function cabecalhoTabela() {
     // Usa um y fixo (capturado antes do loop) pra todas as colunas — chamar doc.text() move
     // doc.y pra baixo do texto desenhado, então usar "doc.y" dentro do loop faz cada título
     // ficar mais baixo que o anterior (título indo em "escada" em vez de alinhado).
-    doc.fontSize(9).fillColor("#57534e");
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#78716c");
     const headerY = doc.y;
     for (const c of COLUNAS) {
-      doc.text(c.titulo, c.x, headerY, { width: c.largura });
+      doc.text(c.titulo.toUpperCase(), c.x, headerY, { width: c.largura });
     }
+    doc.font("Helvetica");
     const y = headerY + 12;
     doc
-      .moveTo(40, y)
-      .lineTo(doc.page.width - doc.page.margins.right, y)
+      .moveTo(margemEsq, y)
+      .lineTo(doc.page.width - margemDir, y)
       .strokeColor("#d6d3d1")
       .stroke();
-    doc.y = y + 6;
+    doc.y = y + 8;
   }
 
-  doc.fontSize(18).fillColor("#1c1917").text(opcoes.titulo);
-  doc.moveDown(0.2);
-  doc.fontSize(9).fillColor("#57534e").text(opcoes.subtitulo);
-  doc.moveDown(0.8);
+  function novaPagina() {
+    doc.addPage({ size: "A4", margin: 40, layout: "landscape" });
+    cabecalhoPagina();
+    cabecalhoTabela();
+  }
 
-  cabecalho();
+  cabecalhoPagina();
+  cabecalhoTabela();
 
   // Mostra descrição/observação/produtos por inteiro (sem cortar com "…") — pra isso, calcula
   // a altura real de cada bloco (doc.heightOfString, mesma fonte/largura do desenho) e passa
@@ -89,7 +140,7 @@ export async function gerarPdfDemandas(
   const LARGURA_DEMANDA = COLUNAS[0].largura;
   const GAP = 3;
 
-  for (const d of demandas) {
+  demandas.forEach((d, indice) => {
     const produtosTexto =
       d.produtos.length > 0 ? `Produtos: ${d.produtos.map((p) => PRODUTO_LABEL[p]).join(", ")}` : "";
 
@@ -100,19 +151,24 @@ export async function gerarPdfDemandas(
       : 0;
     const alturaProdutos = produtosTexto ? doc.fontSize(8).heightOfString(produtosTexto, { width: LARGURA_DEMANDA }) : 0;
 
-    const alturaLinha =
+    const alturaConteudo =
       alturaTitulo +
       (d.descricao ? GAP + alturaDescricao : 0) +
       (d.observacao ? GAP + alturaObs : 0) +
-      (produtosTexto ? GAP + alturaProdutos : 0) +
-      8;
+      (produtosTexto ? GAP + alturaProdutos : 0);
+    const alturaLinha = Math.max(alturaConteudo, 15) + 10;
 
     if (doc.y + alturaLinha > limiteY) {
-      doc.addPage({ size: "A4", margin: 40, layout: "landscape" });
-      cabecalho();
+      novaPagina();
     }
 
     const y = doc.y;
+
+    // Linhas pares com um fundo bem sutil, só pra guiar o olho ao ler a tabela inteira.
+    if (indice % 2 === 1) {
+      doc.rect(margemEsq - 4, y - 3, larguraConteudo + 8, alturaLinha).fill("#fafaf9");
+    }
+
     let cursor = y;
     doc
       .fontSize(9)
@@ -147,41 +203,59 @@ export async function gerarPdfDemandas(
     doc.fontSize(9).fillColor("#1c1917");
     doc.text(SETOR_LABEL[d.setorSolicitante], COLUNAS[1].x, y, { width: COLUNAS[1].largura });
     doc.text(SETOR_LABEL[d.setorResponsavel], COLUNAS[2].x, y, { width: COLUNAS[2].largura });
-    doc.text(PRIORIDADE_LABEL[d.prioridade], COLUNAS[3].x, y, { width: COLUNAS[3].largura });
-    doc.text(d.prazo ? formatarPrazo(d.prazo) : "—", COLUNAS[4].x, y, { width: COLUNAS[4].largura });
-    doc.font("Helvetica-Bold").text(STATUS_LABEL[d.status], COLUNAS[5].x, y, { width: COLUNAS[5].largura });
-    doc.font("Helvetica").text(`${d.criadoPor.nome}\n${formatarData(d.createdAt)}`, COLUNAS[6].x, y, { width: COLUNAS[6].largura });
+    selo(PRIORIDADE_LABEL[d.prioridade], COLUNAS[3].x, y, COR_PRIORIDADE[d.prioridade]);
+    doc.fontSize(9).fillColor("#1c1917").text(d.prazo ? formatarPrazo(d.prazo) : "—", COLUNAS[4].x, y, { width: COLUNAS[4].largura });
+    selo(STATUS_LABEL[d.status], COLUNAS[5].x, y, COR_STATUS[d.status]);
+    doc
+      .fontSize(9)
+      .fillColor("#1c1917")
+      .text(`${d.criadoPor.nome}\n${formatarData(d.createdAt)}`, COLUNAS[6].x, y, { width: COLUNAS[6].largura });
 
     doc.y = y + alturaLinha;
-  }
+  });
 
-  // Totalizadores no fim: quantas demandas, quantas peças produzidas (soma dos itens) e
-  // quantos códigos de peça diferentes — os mesmos três números da tela de Produção.
+  // Cartões de resumo: quantas demandas, quantas peças produzidas (soma dos itens) e quantos
+  // códigos de peça diferentes — mesmos três números da tela de Produção, num formato mais
+  // fácil de ler de longe do que três linhas de texto soltas.
   const todosItens = demandas.flatMap((d) => d.itens);
   const totalPecas = todosItens.reduce((soma, i) => soma + i.quantidade, 0);
   const codigosDistintos = new Set(todosItens.map((i) => i.codigo)).size;
 
-  const resumo = [
-    `Quant. DEMANDAS= ${demandas.length}`,
-    `Quant. ITENS= ${totalPecas}`,
-    `Quant. CÓDIGOS= ${codigosDistintos}`,
+  const CARTAO_ALTURA = 58;
+  const CARTAO_GAP = 16;
+  const CARTAO_LARGURA = (larguraConteudo - CARTAO_GAP * 2) / 3;
+
+  if (doc.y + 20 + CARTAO_ALTURA > limiteY) {
+    novaPagina();
+  }
+  doc.y += 20;
+
+  const cartoes = [
+    { rotulo: "DEMANDAS", valor: demandas.length },
+    { rotulo: "ITENS PRODUZIDOS", valor: totalPecas },
+    { rotulo: "CÓDIGOS DIFERENTES", valor: codigosDistintos },
   ];
 
-  doc.y += 16;
-  for (const linha of resumo) {
-    const altura = doc.fontSize(11).heightOfString(linha, { width: 300 });
-    if (doc.y + altura > limiteY) {
-      doc.addPage({ size: "A4", margin: 40, layout: "landscape" });
-      doc.y = 40;
-    }
+  // Mesmo y fixo pros três — cada doc.text() abaixo move doc.y sozinho pra debaixo do texto
+  // desenhado, então ler "doc.y" de novo a cada volta do loop faria o 2º e o 3º cartão
+  // escorregarem pra baixo (e até pra próxima página) em vez de ficarem lado a lado.
+  const yCartoes = doc.y;
+  cartoes.forEach((c, i) => {
+    const x = margemEsq + i * (CARTAO_LARGURA + CARTAO_GAP);
+    const y = yCartoes;
+    doc.roundedRect(x, y, CARTAO_LARGURA, CARTAO_ALTURA, 8).lineWidth(1).strokeColor("#e7e5e4").stroke();
+    doc
+      .font("Helvetica")
+      .fontSize(8)
+      .fillColor("#78716c")
+      .text(c.rotulo, x + 16, y + 14, { width: CARTAO_LARGURA - 32 });
     doc
       .font("Helvetica-Bold")
-      .fontSize(11)
-      .fillColor("#1d4ed8")
-      .text(linha, 40, doc.y, { width: 300, height: altura });
-    doc.y += altura + 14;
-  }
-  doc.font("Helvetica");
+      .fontSize(22)
+      .fillColor("#1c1917")
+      .text(String(c.valor), x + 16, y + 27, { width: CARTAO_LARGURA - 32 });
+  });
+  doc.y += CARTAO_ALTURA;
 
   doc.end();
   return finalizado;
