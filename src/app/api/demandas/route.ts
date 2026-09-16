@@ -24,6 +24,7 @@ const PRODUTO_VALUES = [
   "PULSEIRA",
   "TERCO",
   "TORNOZELEIRA",
+  "OUTROS",
 ] as const;
 
 export async function GET(request: NextRequest) {

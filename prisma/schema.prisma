@@ -55,6 +55,7 @@ enum TipoProduto {
   PULSEIRA
   TERCO
   TORNOZELEIRA
+  OUTROS
 }
 
 model User {

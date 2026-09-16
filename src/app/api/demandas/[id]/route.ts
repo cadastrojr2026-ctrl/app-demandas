@@ -26,6 +26,7 @@ const PRODUTO_VALUES = [
   "PULSEIRA",
   "TERCO",
   "TORNOZELEIRA",
+  "OUTROS",
 ] as const;
 
 const dataOpcional = z

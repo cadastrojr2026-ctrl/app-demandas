@@ -95,6 +95,7 @@ export const PRODUTO_ORDER: TipoProduto[] = [
   "PULSEIRA",
   "TERCO",
   "TORNOZELEIRA",
+  "OUTROS",
 ];
 
 export const PRODUTO_LABEL: Record<TipoProduto, string> = {
@@ -110,4 +111,5 @@ export const PRODUTO_LABEL: Record<TipoProduto, string> = {
   PULSEIRA: "Pulseira",
   TERCO: "Terço",
   TORNOZELEIRA: "Tornozeleira",
+  OUTROS: "Outros",
 };
