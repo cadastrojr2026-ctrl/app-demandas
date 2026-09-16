@@ -25,6 +25,13 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
   const [desde, setDesde] = useState("");
   const [ate, setAte] = useState("");
 
+  function handleGerarPdf() {
+    const params = new URLSearchParams();
+    if (desde) params.set("desde", desde);
+    if (ate) params.set("ate", ate);
+    window.open(`/api/producao/pdf?${params.toString()}`, "_blank");
+  }
+
   useEffect(() => {
     (async () => {
       setCarregando(true);
@@ -60,12 +67,21 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
                 : "Peças produzidas e demandas solicitadas pelo seu setor, a partir dos itens registrados em cada demanda."}
             </p>
           </div>
-          <Link
-            href="/demandas"
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
-            ← Voltar para demandas
-          </Link>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleGerarPdf}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              Gerar PDF
+            </button>
+            <Link
+              href="/demandas"
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              ← Voltar para demandas
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
