@@ -119,7 +119,7 @@ export function Sidebar({ session }: { session: SessionInfo }) {
               </p>
             </div>
             <div className="hidden items-center gap-2 md:flex">
-              <NotificationBell abrirParaCima />
+              <NotificationBell abrirParaCima abrirParaDireita />
               <ThemeToggle />
             </div>
           </div>

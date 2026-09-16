@@ -58,7 +58,18 @@ function tocarBeep() {
 }
 
 /** Sino de notificações no app — alternativa ao WhatsApp para avisos (ex: demanda concluída). */
-export function NotificationBell({ abrirParaCima = false }: { abrirParaCima?: boolean }) {
+export function NotificationBell({
+  abrirParaCima = false,
+  abrirParaDireita = false,
+}: {
+  abrirParaCima?: boolean;
+  // Por padrão o painel fica ancorado pela direita (right-0), abrindo pra esquerda — funciona
+  // quando o sino está perto da borda direita da tela (barra superior no mobile). Quando o
+  // sino fica perto da borda esquerda (rodapé da sidebar), isso faz boa parte do painel
+  // renderizar fora da viewport (cortado); abrirParaDireita ancora pela esquerda (left-0),
+  // abrindo pra direita, que é o que cabe naquele lugar.
+  abrirParaDireita?: boolean;
+}) {
   const [notificacoes, setNotificacoes] = useState<NotificacaoDTO[]>([]);
   const [aberto, setAberto] = useState(false);
   const [marcandoTodas, setMarcandoTodas] = useState(false);
@@ -198,9 +209,9 @@ export function NotificationBell({ abrirParaCima = false }: { abrirParaCima?: bo
 
       {aberto && (
         <div
-          className={`absolute right-0 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950 ${
+          className={`absolute z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950 ${
             abrirParaCima ? "bottom-11" : "top-11"
-          }`}
+          } ${abrirParaDireita ? "left-0" : "right-0"}`}
         >
           <div className="flex items-center justify-between gap-2 border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
             <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Notificações</p>
