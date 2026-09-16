@@ -81,18 +81,31 @@ export async function GET(request: NextRequest) {
 
   cabecalho();
 
-  // Alturas fixas (com "ellipsis" cortando o texto que não couber) — evita que o pdfkit
-  // quebre página no meio de uma linha quando descrição/observação/produtos forem longos
-  // (dados reais de demanda costumam ter várias linhas de código de produto).
-  const TITULO_ALTURA = 24;
-  const DETALHES_ALTURA = 20;
+  // Mostra descrição/observação/produtos por inteiro (sem cortar com "…") — pra isso, calcula
+  // a altura real de cada bloco (doc.heightOfString, mesma fonte/largura do desenho) e passa
+  // essa altura exata pro doc.text() de cada um. Com uma altura explícita e correta, o pdfkit
+  // nunca precisa decidir sozinho se quebra página no meio do texto — ele só usa o espaço que
+  // a gente já reservou, e a decisão de quebrar página continua 100% nossa (o if abaixo).
+  const LARGURA_DEMANDA = COLUNAS[0].largura;
+  const GAP = 3;
 
   for (const d of demandas) {
-    const detalhes = [d.descricao, d.observacao ? `Obs: ${d.observacao}` : null, d.produtos.length > 0 ? d.produtos.map((p) => PRODUTO_LABEL[p]).join(", ") : null]
-      .filter(Boolean)
-      .join(" — ");
+    const produtosTexto =
+      d.produtos.length > 0 ? `Produtos: ${d.produtos.map((p) => PRODUTO_LABEL[p]).join(", ")}` : "";
 
-    const alturaLinha = TITULO_ALTURA + (detalhes ? DETALHES_ALTURA + 3 : 0) + 8;
+    const alturaTitulo = doc.fontSize(9).heightOfString(d.titulo, { width: LARGURA_DEMANDA });
+    const alturaDescricao = d.descricao ? doc.fontSize(8).heightOfString(d.descricao, { width: LARGURA_DEMANDA }) : 0;
+    const alturaObs = d.observacao
+      ? doc.fontSize(8).heightOfString(`Obs: ${d.observacao}`, { width: LARGURA_DEMANDA })
+      : 0;
+    const alturaProdutos = produtosTexto ? doc.fontSize(8).heightOfString(produtosTexto, { width: LARGURA_DEMANDA }) : 0;
+
+    const alturaLinha =
+      alturaTitulo +
+      (d.descricao ? GAP + alturaDescricao : 0) +
+      (d.observacao ? GAP + alturaObs : 0) +
+      (produtosTexto ? GAP + alturaProdutos : 0) +
+      8;
 
     if (doc.y + alturaLinha > limiteY) {
       doc.addPage({ size: "A4", margin: 40, layout: "landscape" });
@@ -100,20 +113,37 @@ export async function GET(request: NextRequest) {
     }
 
     const y = doc.y;
+    let cursor = y;
     doc
       .fontSize(9)
       .fillColor("#1c1917")
-      .text(d.titulo, COLUNAS[0].x, y, { width: COLUNAS[0].largura, height: TITULO_ALTURA, ellipsis: true });
-    if (detalhes) {
+      .text(d.titulo, COLUNAS[0].x, cursor, { width: LARGURA_DEMANDA, height: alturaTitulo });
+    cursor += alturaTitulo;
+    if (d.descricao) {
+      cursor += GAP;
       doc
         .fontSize(8)
         .fillColor("#78716c")
-        .text(detalhes, COLUNAS[0].x, y + TITULO_ALTURA, {
-          width: COLUNAS[0].largura,
-          height: DETALHES_ALTURA,
-          ellipsis: true,
-        });
+        .text(d.descricao, COLUNAS[0].x, cursor, { width: LARGURA_DEMANDA, height: alturaDescricao });
+      cursor += alturaDescricao;
     }
+    if (d.observacao) {
+      cursor += GAP;
+      doc
+        .fontSize(8)
+        .fillColor("#b91c1c")
+        .text(`Obs: ${d.observacao}`, COLUNAS[0].x, cursor, { width: LARGURA_DEMANDA, height: alturaObs });
+      cursor += alturaObs;
+    }
+    if (produtosTexto) {
+      cursor += GAP;
+      doc
+        .fontSize(8)
+        .fillColor("#78716c")
+        .text(produtosTexto, COLUNAS[0].x, cursor, { width: LARGURA_DEMANDA, height: alturaProdutos });
+      cursor += alturaProdutos;
+    }
+
     doc.fontSize(9).fillColor("#1c1917");
     doc.text(SETOR_LABEL[d.setorSolicitante], COLUNAS[1].x, y, { width: COLUNAS[1].largura });
     doc.text(SETOR_LABEL[d.setorResponsavel], COLUNAS[2].x, y, { width: COLUNAS[2].largura });

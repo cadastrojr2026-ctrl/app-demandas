@@ -45,6 +45,7 @@ export function DemandasTable({
   onDelete,
   onChangeStatus,
   onVerHistorico,
+  onVerDetalhe,
 }: {
   demandas: DemandaDTO[];
   session: SessionInfo;
@@ -52,6 +53,7 @@ export function DemandasTable({
   onDelete: (demanda: DemandaDTO) => void;
   onChangeStatus: (demanda: DemandaDTO, status: StatusDemanda) => Promise<void>;
   onVerHistorico: (demanda: DemandaDTO) => void;
+  onVerDetalhe: (demanda: DemandaDTO) => void;
 }) {
   const [alterandoId, setAlterandoId] = useState<number | null>(null);
 
@@ -85,46 +87,53 @@ export function DemandasTable({
               key={d.id}
               className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
             >
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                  {d.titulo}
-                  {d.exemplo && (
-                    <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                      exemplo
-                    </span>
-                  )}
-                </p>
-                <span
-                  className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${PRIORIDADE_BADGE_CLASS[d.prioridade]}`}
-                >
-                  {PRIORIDADE_LABEL[d.prioridade]}
-                </span>
-              </div>
-
-              {d.descricao && (
-                <p className="mt-1 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  {d.descricao}
-                </p>
-              )}
-
-              {d.observacao && (
-                <p className="mt-1 line-clamp-2 text-xs text-red-600 dark:text-red-400">
-                  Obs: {d.observacao}
-                </p>
-              )}
-
-              {d.produtos.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {d.produtos.map((p) => (
-                    <span
-                      key={p}
-                      className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                    >
-                      {PRODUTO_LABEL[p]}
-                    </span>
-                  ))}
+              <button
+                type="button"
+                onClick={() => onVerDetalhe(d)}
+                className="block w-full text-left"
+                title="Ver demanda completa"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-zinc-900 hover:underline dark:text-zinc-100">
+                    {d.titulo}
+                    {d.exemplo && (
+                      <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                        exemplo
+                      </span>
+                    )}
+                  </p>
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${PRIORIDADE_BADGE_CLASS[d.prioridade]}`}
+                  >
+                    {PRIORIDADE_LABEL[d.prioridade]}
+                  </span>
                 </div>
-              )}
+
+                {d.descricao && (
+                  <p className="mt-1 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {d.descricao}
+                  </p>
+                )}
+
+                {d.observacao && (
+                  <p className="mt-1 line-clamp-2 text-xs text-red-600 dark:text-red-400">
+                    Obs: {d.observacao}
+                  </p>
+                )}
+
+                {d.produtos.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {d.produtos.map((p) => (
+                      <span
+                        key={p}
+                        className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                      >
+                        {PRODUTO_LABEL[p]}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </button>
 
               <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                 <p>
@@ -241,36 +250,43 @@ export function DemandasTable({
                 className="border-b border-zinc-100 align-top last:border-0 dark:border-zinc-900"
               >
                 <td className="max-w-xs px-4 py-3">
-                  <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                    {d.titulo}
-                    {d.exemplo && (
-                      <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                        exemplo
-                      </span>
-                    )}
-                  </p>
-                  {d.descricao && (
-                    <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      {d.descricao}
-                    </p>
-                  )}
-                  {d.observacao && (
-                    <p className="mt-0.5 line-clamp-2 text-xs text-red-600 dark:text-red-400">
-                      Obs: {d.observacao}
-                    </p>
-                  )}
-                  {d.produtos.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {d.produtos.map((p) => (
-                        <span
-                          key={p}
-                          className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                        >
-                          {PRODUTO_LABEL[p]}
+                  <button
+                    type="button"
+                    onClick={() => onVerDetalhe(d)}
+                    className="block w-full text-left"
+                    title="Ver demanda completa"
+                  >
+                    <p className="font-medium text-zinc-900 hover:underline dark:text-zinc-100">
+                      {d.titulo}
+                      {d.exemplo && (
+                        <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                          exemplo
                         </span>
-                      ))}
-                    </div>
-                  )}
+                      )}
+                    </p>
+                    {d.descricao && (
+                      <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        {d.descricao}
+                      </p>
+                    )}
+                    {d.observacao && (
+                      <p className="mt-0.5 line-clamp-2 text-xs text-red-600 dark:text-red-400">
+                        Obs: {d.observacao}
+                      </p>
+                    )}
+                    {d.produtos.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {d.produtos.map((p) => (
+                          <span
+                            key={p}
+                            className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                          >
+                            {PRODUTO_LABEL[p]}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </button>
                 </td>
                 <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                   {SETOR_LABEL[d.setorSolicitante]}
