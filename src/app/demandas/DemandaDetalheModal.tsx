@@ -140,7 +140,7 @@ export function DemandaDetalheModal({
               {demanda.itens.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-3">
                   <span>{item.codigo}</span>
-                  <span className="text-zinc-500 dark:text-zinc-400">{item.quantidade} un.</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">{item.quantidade}</span>
                 </li>
               ))}
             </ul>
