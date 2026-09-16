@@ -136,7 +136,11 @@ export function DemandaDetalheModal({
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               Itens produzidos
             </p>
-            <ul className="mt-1.5 flex flex-col gap-0.5 text-sm text-zinc-800 dark:text-zinc-200">
+            <div className="mt-2 flex items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+              <span>Código</span>
+              <span>Quantidade</span>
+            </div>
+            <ul className="mt-1 flex flex-col gap-0.5 text-sm text-zinc-800 dark:text-zinc-200">
               {demanda.itens.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-3">
                   <span>{item.codigo}</span>
