@@ -44,6 +44,9 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
   const [prioridade, setPrioridade] = useState<Prioridade>(demanda?.prioridade ?? "MEDIA");
   const [prazo, setPrazo] = useState(demanda?.prazo ? demanda.prazo.slice(0, 10) : "");
   const [produtos, setProdutos] = useState<Set<TipoProduto>>(new Set(demanda?.produtos ?? []));
+  const [itens, setItens] = useState<{ codigo: string; quantidade: string }[]>(
+    demanda?.itens.map((i) => ({ codigo: i.codigo, quantidade: String(i.quantidade) })) ?? []
+  );
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -59,13 +62,31 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
     });
   }
 
+  function adicionarItem() {
+    setItens((atual) => [...atual, { codigo: "", quantidade: "" }]);
+  }
+
+  function atualizarItem(indice: number, campo: "codigo" | "quantidade", valor: string) {
+    setItens((atual) => atual.map((item, i) => (i === indice ? { ...item, [campo]: valor } : item)));
+  }
+
+  function removerItem(indice: number) {
+    setItens((atual) => atual.filter((_, i) => i !== indice));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
     setSalvando(true);
     try {
+      // Só manda itens com código preenchido e quantidade válida — linhas em branco (ex: o
+      // usuário clicou em "+ Adicionar item" e não chegou a preencher) são ignoradas.
+      const itensValidos = itens
+        .map((i) => ({ codigo: i.codigo.trim(), quantidade: Number(i.quantidade) }))
+        .filter((i) => i.codigo && Number.isFinite(i.quantidade) && i.quantidade > 0);
+
       const payload = somenteObservacao
-        ? { observacao: observacao || null }
+        ? { observacao: observacao || null, itens: itensValidos }
         : {
             titulo,
             descricao: descricao || null,
@@ -74,6 +95,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
             prioridade,
             prazo: prazo || null,
             produtos: Array.from(produtos),
+            itens: itensValidos,
           };
       const res = await fetch(editando ? `/api/demandas/${demanda!.id}` : "/api/demandas", {
         method: editando ? "PATCH" : "POST",
@@ -235,6 +257,53 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
                 );
               })}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Itens produzidos (opcional)
+            </span>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Código da peça e quantidade produzida pra atender esta demanda — alimenta o relatório de
+              produção.
+            </p>
+            <div className="flex flex-col gap-2">
+              {itens.map((item, indice) => (
+                <div key={indice} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={item.codigo}
+                    onChange={(e) => atualizarItem(indice, "codigo", e.target.value)}
+                    placeholder="Código (ex: ARG05766)"
+                    maxLength={50}
+                    className={`${inputClass} flex-1`}
+                  />
+                  <input
+                    type="number"
+                    min={1}
+                    value={item.quantidade}
+                    onChange={(e) => atualizarItem(indice, "quantidade", e.target.value)}
+                    placeholder="Qtd."
+                    className={`${inputClass} w-24`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removerItem(indice)}
+                    aria-label="Remover item"
+                    className="shrink-0 rounded-lg border border-zinc-300 px-2.5 text-sm text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={adicionarItem}
+              className="self-start rounded-lg border border-dashed border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              + Adicionar item
+            </button>
           </div>
 
           <div className="flex flex-col gap-1.5">

@@ -131,6 +131,22 @@ export function DemandaDetalheModal({
           </div>
         )}
 
+        {demanda.itens.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Itens produzidos
+            </p>
+            <ul className="mt-1.5 flex flex-col gap-0.5 text-sm text-zinc-800 dark:text-zinc-200">
+              {demanda.itens.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3">
+                  <span>{item.codigo}</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">{item.quantidade} un.</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {demanda.produtos.length > 0 && (
           <div className="mt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">

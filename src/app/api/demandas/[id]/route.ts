@@ -5,6 +5,7 @@ import { requireAdmin, requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
 import { enviarWhatsApp } from "@/lib/whatsapp";
 import { notificarAdmins, notificarSetor } from "@/lib/notificacoes";
+import { itensSchema } from "@/lib/itemProduzido";
 import { SETOR_LABEL, STATUS_LABEL } from "@/lib/constants";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -44,6 +45,7 @@ const patchSchema = z
     prazo: dataOpcional,
     produtos: z.array(z.enum(PRODUTO_VALUES)).optional(),
     status: z.enum(STATUS_VALUES).optional(),
+    itens: itensSchema,
   })
   .refine((data) => Object.keys(data).length > 0, { message: "Nada para atualizar." });
 
@@ -56,6 +58,7 @@ const CAMPO_LABEL: Record<string, string> = {
   prazo: "prazo",
   produtos: "produtos",
   status: "status",
+  itens: "itens produzidos",
 };
 
 function parseId(idParam: string) {
@@ -95,12 +98,13 @@ export async function PATCH(
   const canChangeStatus = canEditFull || isResponsavel;
 
   // Quem não pode editar a demanda inteira (não é admin nem criador), mas é do setor
-  // responsável por atendê-la, ainda pode mudar o status (já valia) e agora também
-  // editar só a observação — sem tocar em título, descrição, prazo, etc.
-  const CAMPOS_RESTRITOS = new Set(["status", "observacao"]);
+  // responsável por atendê-la, ainda pode mudar o status (já valia), editar a observação e
+  // registrar os itens produzidos — sem tocar em título, descrição, prazo, etc. (esses três
+  // campos podem ser mandados juntos ou separados, sempre sem mexer nos outros).
+  const CAMPOS_RESTRITOS = new Set(["status", "observacao", "itens"]);
   const changedKeys = Object.keys(parsed.data);
   const somenteStatus = changedKeys.length === 1 && changedKeys[0] === "status";
-  const somenteCampoRestrito = changedKeys.length === 1 && CAMPOS_RESTRITOS.has(changedKeys[0]);
+  const somenteCampoRestrito = changedKeys.every((k) => CAMPOS_RESTRITOS.has(k));
   const permitido = somenteCampoRestrito ? canChangeStatus : canEditFull;
 
   if (!permitido) {
@@ -118,10 +122,15 @@ export async function PATCH(
     );
   }
 
-  const { prazo, ...resto } = parsed.data;
+  const { prazo, itens, ...resto } = parsed.data;
   const data: Prisma.DemandaUpdateInput = { ...resto };
   if ("prazo" in parsed.data) {
     data.prazo = prazo ? new Date(prazo) : null;
+  }
+  if (itens !== undefined) {
+    // Substitui o conjunto inteiro de itens (mesma lógica de "produtos": o formulário sempre
+    // manda a lista completa, não um item por vez) — apaga os antigos e cria os novos.
+    data.itens = { deleteMany: {}, create: itens };
   }
 
   const setorResponsavelFinal = data.setorResponsavel ?? demanda.setorResponsavel;
@@ -137,6 +146,7 @@ export async function PATCH(
     data,
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
+      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
     },
   });
 

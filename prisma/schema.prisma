@@ -105,9 +105,27 @@ model Demanda {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // itens efetivamente produzidos pra atender essa demanda (código da peça + quantidade) —
+  // registrados no formulário da demanda, alimentam o relatório de produção.
+  itens ItemProduzido[]
+
   @@index([status])
   @@index([setorResponsavel])
   @@index([setorSolicitante])
+}
+
+// Item produzido (código da peça + quantidade) pra atender uma demanda. Uma demanda pode ter
+// vários itens (igual ao padrão já usado em "descrição": vários códigos numa só demanda).
+model ItemProduzido {
+  id         Int      @id @default(autoincrement())
+  demandaId  Int
+  demanda    Demanda  @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  codigo     String
+  quantidade Int
+  createdAt  DateTime @default(now())
+
+  @@index([demandaId])
+  @@index([codigo])
 }
 
 // Notificações dentro do próprio app (ex: aviso de demanda concluída para o admin) —

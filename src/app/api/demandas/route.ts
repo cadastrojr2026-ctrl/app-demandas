@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { registrarEvento } from "@/lib/historico";
 import { notificarSetor } from "@/lib/notificacoes";
 import { buildDemandasWhere } from "@/lib/demandasFiltro";
+import { itensSchema } from "@/lib/itemProduzido";
 import { PRIORIDADE_LABEL, PRODUTO_LABEL, SETOR_LABEL } from "@/lib/constants";
 
 // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
     orderBy: [{ createdAt: "desc" }],
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
+      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
     },
   });
 
@@ -58,6 +60,7 @@ const createSchema = z.object({
   prioridade: z.enum(PRIORIDADE_VALUES).optional(),
   prazo: dataOpcional,
   produtos: z.array(z.enum(PRODUTO_VALUES)).optional(),
+  itens: itensSchema,
 });
 
 export async function POST(request: NextRequest) {
@@ -73,7 +76,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { titulo, descricao, observacao, setorResponsavel, prioridade, prazo, produtos } = parsed.data;
+  const { titulo, descricao, observacao, setorResponsavel, prioridade, prazo, produtos, itens } = parsed.data;
   const setorSolicitante = auth.session.setor;
 
   if (setorResponsavel === setorSolicitante) {
@@ -94,9 +97,11 @@ export async function POST(request: NextRequest) {
       prazo: prazo ? new Date(prazo) : null,
       produtos: produtos ?? [],
       criadoPorId: auth.session.userId,
+      itens: itens && itens.length > 0 ? { create: itens } : undefined,
     },
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
+      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
     },
   });
 
@@ -104,11 +109,15 @@ export async function POST(request: NextRequest) {
     demanda.produtos.length > 0
       ? ` Produtos: ${demanda.produtos.map((p) => PRODUTO_LABEL[p]).join(", ")}.`
       : "";
+  const itensTexto =
+    demanda.itens.length > 0
+      ? ` Itens produzidos: ${demanda.itens.map((i) => `${i.codigo} (${i.quantidade})`).join(", ")}.`
+      : "";
   await registrarEvento({
     demandaId: demanda.id,
     demandaTitulo: demanda.titulo,
     tipo: "CRIADA",
-    descricao: `Demanda criada por ${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) para ${SETOR_LABEL[setorResponsavel]}, prioridade ${PRIORIDADE_LABEL[demanda.prioridade]}.${produtosTexto}`,
+    descricao: `Demanda criada por ${auth.session.nome} (${SETOR_LABEL[setorSolicitante]}) para ${SETOR_LABEL[setorResponsavel]}, prioridade ${PRIORIDADE_LABEL[demanda.prioridade]}.${produtosTexto}${itensTexto}`,
     usuarioNome: auth.session.nome,
     usuarioSetor: auth.session.setor,
     demandaSetorSolicitante: demanda.setorSolicitante,
