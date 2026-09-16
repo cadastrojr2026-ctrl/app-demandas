@@ -143,6 +143,10 @@ export async function gerarPdfDemandas(
   demandas.forEach((d, indice) => {
     const produtosTexto =
       d.produtos.length > 0 ? `Produtos: ${d.produtos.map((p) => PRODUTO_LABEL[p]).join(", ")}` : "";
+    // Sem isso, o total "Itens produzidos" dos cartões de resumo não tem como ser conferido —
+    // apareceria só no fim do PDF, sem dar pra ver em qual demanda cada item foi registrado.
+    const itensTexto =
+      d.itens.length > 0 ? `Itens: ${d.itens.map((i) => `${i.codigo} (${i.quantidade})`).join(", ")}` : "";
 
     const alturaTitulo = doc.fontSize(9).heightOfString(d.titulo, { width: LARGURA_DEMANDA });
     const alturaDescricao = d.descricao ? doc.fontSize(8).heightOfString(d.descricao, { width: LARGURA_DEMANDA }) : 0;
@@ -150,12 +154,22 @@ export async function gerarPdfDemandas(
       ? doc.fontSize(8).heightOfString(`Obs: ${d.observacao}`, { width: LARGURA_DEMANDA })
       : 0;
     const alturaProdutos = produtosTexto ? doc.fontSize(8).heightOfString(produtosTexto, { width: LARGURA_DEMANDA }) : 0;
+    // Precisa medir em negrito (mesma fonte usada pra desenhar essa linha mais abaixo) — em
+    // negrito as letras são mais largas, então medir em fonte normal reserva altura de menos
+    // e o pdfkit corta o texto no meio (ele nunca "decide sozinho" quebrar página quando
+    // recebe uma altura explícita: só usa o espaço que reservamos, então se reservarmos pouco
+    // o excesso simplesmente some, cortado).
+    const alturaItens = itensTexto
+      ? doc.font("Helvetica-Bold").fontSize(8).heightOfString(itensTexto, { width: LARGURA_DEMANDA })
+      : 0;
+    doc.font("Helvetica");
 
     const alturaConteudo =
       alturaTitulo +
       (d.descricao ? GAP + alturaDescricao : 0) +
       (d.observacao ? GAP + alturaObs : 0) +
-      (produtosTexto ? GAP + alturaProdutos : 0);
+      (produtosTexto ? GAP + alturaProdutos : 0) +
+      (itensTexto ? GAP + alturaItens : 0);
     const alturaLinha = Math.max(alturaConteudo, 15) + 10;
 
     if (doc.y + alturaLinha > limiteY) {
@@ -198,6 +212,16 @@ export async function gerarPdfDemandas(
         .fillColor("#78716c")
         .text(produtosTexto, COLUNAS[0].x, cursor, { width: LARGURA_DEMANDA, height: alturaProdutos });
       cursor += alturaProdutos;
+    }
+    if (itensTexto) {
+      cursor += GAP;
+      doc
+        .fontSize(8)
+        .font("Helvetica-Bold")
+        .fillColor("#1d4ed8")
+        .text(itensTexto, COLUNAS[0].x, cursor, { width: LARGURA_DEMANDA, height: alturaItens });
+      doc.font("Helvetica");
+      cursor += alturaItens;
     }
 
     doc.fontSize(9).fillColor("#1c1917");
