@@ -22,6 +22,12 @@ type Props = {
 const inputClass =
   "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
 
+// Sem o "w-full" do inputClass acima — usado nos campos de item (código/quantidade), que
+// ficam lado a lado numa linha flex e definem a própria largura (flex-1 / w-24). Combinar
+// "w-full" com "flex-1"/"w-24" no mesmo elemento faz o "w-full" (100%) vencer no CSS do
+// Tailwind, espremendo o campo de código e estourando o de quantidade.
+const inputClassSemLargura = inputClass.replace("w-full ", "");
+
 export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) {
   const editando = demanda !== null;
   const setorSolicitante = editando ? demanda!.setorSolicitante : session.setor;
@@ -276,7 +282,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
                     onChange={(e) => atualizarItem(indice, "codigo", e.target.value)}
                     placeholder="Código (ex: ARG05766)"
                     maxLength={50}
-                    className={`${inputClass} flex-1`}
+                    className={`${inputClassSemLargura} min-w-0 flex-1`}
                   />
                   <input
                     type="number"
@@ -284,7 +290,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
                     value={item.quantidade}
                     onChange={(e) => atualizarItem(indice, "quantidade", e.target.value)}
                     placeholder="Qtd."
-                    className={`${inputClass} w-24`}
+                    className={`${inputClassSemLargura} w-24 shrink-0`}
                   />
                   <button
                     type="button"
