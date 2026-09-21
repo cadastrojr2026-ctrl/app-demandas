@@ -165,8 +165,15 @@ model HistoricoEvento {
   demandaSetorSolicitante Setor?
   demandaSetorResponsavel Setor?
 
+  // só preenchido em eventos STATUS_ALTERADO — situação antes/depois da mudança. Permite
+  // filtrar o histórico por situação resultante (ex: só o que virou Concluída ou Entregue)
+  // sem precisar re-analisar o texto livre de "descricao".
+  statusAnterior StatusDemanda?
+  statusNovo     StatusDemanda?
+
   @@index([demandaId])
   @@index([createdAt])
   @@index([demandaSetorSolicitante])
   @@index([demandaSetorResponsavel])
+  @@index([statusNovo])
 }

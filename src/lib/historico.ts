@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Setor, TipoEvento } from "@/generated/prisma/client";
+import type { Setor, StatusDemanda, TipoEvento } from "@/generated/prisma/client";
 
 /** Registra um evento no histórico de uma demanda (criação, edição, mudança de status, exclusão). */
 export async function registrarEvento(params: {
@@ -11,6 +11,10 @@ export async function registrarEvento(params: {
   usuarioSetor: Setor;
   demandaSetorSolicitante: Setor;
   demandaSetorResponsavel: Setor;
+  // só faz sentido em eventos STATUS_ALTERADO — deixa o histórico filtrável por situação
+  // resultante (ex: só o que virou Concluída ou Entregue).
+  statusAnterior?: StatusDemanda;
+  statusNovo?: StatusDemanda;
 }) {
   await prisma.historicoEvento.create({
     data: {
@@ -22,6 +26,8 @@ export async function registrarEvento(params: {
       usuarioSetor: params.usuarioSetor,
       demandaSetorSolicitante: params.demandaSetorSolicitante,
       demandaSetorResponsavel: params.demandaSetorResponsavel,
+      statusAnterior: params.statusAnterior,
+      statusNovo: params.statusNovo,
     },
   });
 }

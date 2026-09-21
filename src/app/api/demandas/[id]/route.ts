@@ -67,6 +67,41 @@ function parseId(idParam: string) {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+// Busca uma demanda específica — usado pelo link "abrir demanda" no histórico (a linha só
+// guarda o id, não a demanda inteira). Mesma regra de visibilidade da listagem: Estoque
+// (admin) vê qualquer uma, Almoxarifado e Fundição só as do próprio setor.
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+
+  const { id: idParam } = await params;
+  const id = parseId(idParam);
+  if (!id) return NextResponse.json({ error: "Id inválido." }, { status: 400 });
+
+  const demanda = await prisma.demanda.findUnique({
+    where: { id },
+    include: {
+      criadoPor: { select: { id: true, nome: true, setor: true } },
+      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
+    },
+  });
+  if (!demanda) return NextResponse.json({ error: "Demanda não encontrada." }, { status: 404 });
+
+  const { session } = auth;
+  const podeVer =
+    session.role === "ADMIN" ||
+    demanda.setorSolicitante === session.setor ||
+    demanda.setorResponsavel === session.setor;
+  if (!podeVer) {
+    return NextResponse.json({ error: "Você não tem acesso a esta demanda." }, { status: 403 });
+  }
+
+  return NextResponse.json({ demanda });
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -161,6 +196,8 @@ export async function PATCH(
       usuarioSetor: session.setor,
       demandaSetorSolicitante: atualizada.setorSolicitante,
       demandaSetorResponsavel: atualizada.setorResponsavel,
+      statusAnterior: demanda.status,
+      statusNovo: atualizada.status,
     });
   } else {
     const camposAlterados = changedKeys.map((k) => CAMPO_LABEL[k] ?? k).join(", ");

@@ -52,6 +52,8 @@ export interface HistoricoEventoDTO {
   usuarioSetor: Setor;
   exemplo: boolean;
   createdAt: string;
+  statusAnterior: StatusDemanda | null;
+  statusNovo: StatusDemanda | null;
 }
 
 export interface NotificacaoDTO {
