@@ -6,6 +6,7 @@ import type { SessionInfo } from "@/lib/types";
 
 const SETOR_VALUES = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"] as const;
 const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "ENTREGUE", "CONCLUIDA", "CANCELADA"] as const;
+const TIPO_VALUES = ["CRIADA", "EDITADA", "STATUS_ALTERADO", "EXCLUIDA"] as const;
 
 export function parseData(v: string | null, fimDoDia: boolean): Date | undefined {
   if (!v) return undefined;
@@ -20,6 +21,7 @@ export function buildHistoricoWhere(
   const desde = parseData(searchParams.get("desde"), false);
   const ate = parseData(searchParams.get("ate"), true);
   const setor = searchParams.get("setor");
+  const tipo = searchParams.get("tipo");
   const statusNovoValores = searchParams
     .getAll("statusNovo")
     .filter((v): v is (typeof STATUS_VALUES)[number] => (STATUS_VALUES as readonly string[]).includes(v));
@@ -32,6 +34,9 @@ export function buildHistoricoWhere(
   }
   if (setor && (SETOR_VALUES as readonly string[]).includes(setor)) {
     where.usuarioSetor = setor as (typeof SETOR_VALUES)[number];
+  }
+  if (tipo && (TIPO_VALUES as readonly string[]).includes(tipo)) {
+    where.tipo = tipo as (typeof TIPO_VALUES)[number];
   }
   if (statusNovoValores.length > 0) {
     where.statusNovo = { in: statusNovoValores };

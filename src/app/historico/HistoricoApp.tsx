@@ -8,13 +8,19 @@ import { DemandaFormModal } from "@/app/demandas/DemandaFormModal";
 import {
   SETOR_LABEL,
   SETORES,
+  STATUS_LABEL,
+  STATUS_ORDER,
   TIPO_EVENTO_BADGE_CLASS,
   TIPO_EVENTO_LABEL,
 } from "@/lib/constants";
 import type { DemandaDTO, HistoricoEventoDTO, SessionInfo } from "@/lib/types";
-import type { Setor, TipoEvento } from "@/generated/prisma/client";
+import type { Setor, StatusDemanda, TipoEvento } from "@/generated/prisma/client";
 
-const TIPO_ORDER: TipoEvento[] = ["CRIADA", "EDITADA", "STATUS_ALTERADO", "EXCLUIDA"];
+// "Situação alterada" não é uma opção do filtro — é substituída pelas 5 situações
+// específicas abaixo (pra que "Concluída" ali já mostre só o que virou Concluída, sem
+// precisar de um filtro extra separado).
+const TIPOS_SIMPLES: TipoEvento[] = ["CRIADA", "EDITADA", "EXCLUIDA"];
+type FiltroEvento = TipoEvento | StatusDemanda | "";
 
 function formatarData(iso: string) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -36,12 +42,11 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
   const [erro, setErro] = useState<string | null>(null);
   const [proximoCursor, setProximoCursor] = useState<number | null>(null);
 
-  const [tipo, setTipo] = useState<TipoEvento | "">("");
+  const [filtroEvento, setFiltroEvento] = useState<FiltroEvento>("");
   const [q, setQ] = useState("");
   const [desde, setDesde] = useState("");
   const [ate, setAte] = useState("");
   const [setor, setSetor] = useState<Setor | "">("");
-  const [somenteConcluidasEntregues, setSomenteConcluidasEntregues] = useState(false);
   // Depois de abrir uma demanda pelo histórico e clicar em "Histórico" lá dentro, volta aqui
   // filtrado só pros eventos daquela demanda — não precisa buscar de novo, já está tudo
   // carregado.
@@ -58,14 +63,17 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
       if (desde) params.set("desde", desde);
       if (ate) params.set("ate", ate);
       if (setor) params.set("setor", setor);
-      if (somenteConcluidasEntregues) {
-        params.append("statusNovo", "CONCLUIDA");
-        params.append("statusNovo", "ENTREGUE");
+      if (filtroEvento) {
+        if ((TIPOS_SIMPLES as string[]).includes(filtroEvento)) {
+          params.set("tipo", filtroEvento);
+        } else {
+          params.set("statusNovo", filtroEvento);
+        }
       }
       if (cursor) params.set("cursor", String(cursor));
       return params.toString();
     },
-    [desde, ate, setor, somenteConcluidasEntregues]
+    [desde, ate, setor, filtroEvento]
   );
 
   useEffect(() => {
@@ -140,7 +148,6 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
   const filtrados = useMemo(() => {
     return eventos.filter((ev) => {
       if (filtroDemandaId && ev.demandaId !== filtroDemandaId) return false;
-      if (tipo && ev.tipo !== tipo) return false;
       if (q) {
         const termo = q.toLowerCase();
         const alvo = `${ev.demandaTitulo} ${ev.descricao}`.toLowerCase();
@@ -148,7 +155,7 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
       }
       return true;
     });
-  }, [eventos, tipo, q, filtroDemandaId]);
+  }, [eventos, q, filtroDemandaId]);
 
   const isAdmin = session.role === "ADMIN";
   const podeEditarSelecionada =
@@ -204,13 +211,26 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
             placeholder="Buscar por demanda ou descrição do evento..."
             className="min-w-[200px] flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
-          <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoEvento | "")} className={selectClass}>
-            <option value="">Tipo: todos</option>
-            {TIPO_ORDER.map((t) => (
-              <option key={t} value={t}>
-                {TIPO_EVENTO_LABEL[t]}
-              </option>
-            ))}
+          <select
+            value={filtroEvento}
+            onChange={(e) => setFiltroEvento(e.target.value as FiltroEvento)}
+            className={selectClass}
+          >
+            <option value="">O que aconteceu: tudo</option>
+            <optgroup label="Tipo de evento">
+              {TIPOS_SIMPLES.map((t) => (
+                <option key={t} value={t}>
+                  {TIPO_EVENTO_LABEL[t]}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Situação alterada para">
+              {STATUS_ORDER.map((s) => (
+                <option key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <select value={setor} onChange={(e) => setSetor(e.target.value as Setor | "")} className={selectClass}>
             <option value="">Setor: todos</option>
@@ -238,26 +258,14 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
               className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </label>
-          <label
-            className="flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300"
-            title="Mostra só as mudanças de situação que resultaram em Concluída ou Entregue"
-          >
-            <input
-              type="checkbox"
-              checked={somenteConcluidasEntregues}
-              onChange={(e) => setSomenteConcluidasEntregues(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700"
-            />
-            Só concluídas e entregues
-          </label>
-          {(desde || ate || setor || somenteConcluidasEntregues || filtroDemandaId) && (
+          {(desde || ate || setor || filtroEvento || filtroDemandaId) && (
             <button
               type="button"
               onClick={() => {
                 setDesde("");
                 setAte("");
                 setSetor("");
-                setSomenteConcluidasEntregues(false);
+                setFiltroEvento("");
                 setFiltroDemandaId(null);
               }}
               className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
