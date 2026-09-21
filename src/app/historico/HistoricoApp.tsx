@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { DemandaDetalheModal } from "@/app/demandas/DemandaDetalheModal";
@@ -30,6 +30,32 @@ function formatarData(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(iso));
+}
+
+// Formata como "AAAA-MM-DD" no fuso local (não usa toISOString — isso converte pra UTC, o
+// que pode empurrar a data um dia pra trás/frente perto da meia-noite) — mesmo formato que os
+// campos <input type="date"> usam.
+function formatarDataInput(d: Date) {
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function mesmoDia(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+// "Hoje" / "Ontem" / data por extenso — pra agrupar a lista por dia em vez de uma lista
+// corrida, facilitando achar o que rolou recentemente.
+function tituloDoDia(iso: string) {
+  const data = new Date(iso);
+  const hoje = new Date();
+  if (mesmoDia(data, hoje)) return "Hoje";
+  const ontem = new Date(hoje);
+  ontem.setDate(hoje.getDate() - 1);
+  if (mesmoDia(data, ontem)) return "Ontem";
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(data);
 }
 
 const selectClass =
@@ -117,6 +143,20 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
     window.open(`/api/historico/pdf?${construirQuery()}`, "_blank");
   }
 
+  function aplicarPeriodoHoje() {
+    const hoje = formatarDataInput(new Date());
+    setDesde(hoje);
+    setAte(hoje);
+  }
+
+  function aplicarPeriodoUltimos7Dias() {
+    const hojeData = new Date();
+    const seteDiasAtras = new Date(hojeData);
+    seteDiasAtras.setDate(hojeData.getDate() - 6);
+    setDesde(formatarDataInput(seteDiasAtras));
+    setAte(formatarDataInput(hojeData));
+  }
+
   async function abrirDemanda(demandaId: number) {
     setAvisoDemanda(null);
     setCarregandoDemanda(true);
@@ -156,6 +196,23 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
       return true;
     });
   }, [eventos, q, filtroDemandaId]);
+
+  // Agrupa em blocos consecutivos por dia ("Hoje", "Ontem", data por extenso) — a lista já
+  // vem ordenada da mais recente pra mais antiga, então só precisa comparar com o grupo
+  // anterior pra saber se abre um novo bloco ou continua o mesmo.
+  const grupos = useMemo(() => {
+    const blocos: { titulo: string; eventos: HistoricoEventoDTO[] }[] = [];
+    for (const ev of filtrados) {
+      const titulo = tituloDoDia(ev.createdAt);
+      const ultimo = blocos[blocos.length - 1];
+      if (ultimo && ultimo.titulo === titulo) {
+        ultimo.eventos.push(ev);
+      } else {
+        blocos.push({ titulo, eventos: [ev] });
+      }
+    }
+    return blocos;
+  }, [filtrados]);
 
   const isAdmin = session.role === "ADMIN";
   const podeEditarSelecionada =
@@ -258,6 +315,22 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
               className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </label>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={aplicarPeriodoHoje}
+              className="rounded-full border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              Hoje
+            </button>
+            <button
+              type="button"
+              onClick={aplicarPeriodoUltimos7Dias}
+              className="rounded-full border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              Últimos 7 dias
+            </button>
+          </div>
           {(desde || ate || setor || filtroEvento || filtroDemandaId) && (
             <button
               type="button"
@@ -299,35 +372,42 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
         ) : (
           <>
             {/* Cartões: telas pequenas */}
-            <div className="flex flex-col gap-3 md:hidden">
-              {filtrados.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => abrirDemanda(ev.demandaId)}
-                      className="text-left font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+            <div className="flex flex-col gap-4 md:hidden">
+              {grupos.map((grupo) => (
+                <div key={grupo.titulo} className="flex flex-col gap-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    {grupo.titulo}
+                  </h2>
+                  {grupo.eventos.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
                     >
-                      {ev.demandaTitulo}
-                      {ev.exemplo && (
-                        <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                          exemplo
+                      <div className="flex items-start justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => abrirDemanda(ev.demandaId)}
+                          className="text-left font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                        >
+                          {ev.demandaTitulo}
+                          {ev.exemplo && (
+                            <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                              exemplo
+                            </span>
+                          )}
+                        </button>
+                        <span
+                          className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPO_EVENTO_BADGE_CLASS[ev.tipo]}`}
+                        >
+                          {TIPO_EVENTO_LABEL[ev.tipo]}
                         </span>
-                      )}
-                    </button>
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPO_EVENTO_BADGE_CLASS[ev.tipo]}`}
-                    >
-                      {TIPO_EVENTO_LABEL[ev.tipo]}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    {formatarData(ev.createdAt)} · {SETOR_LABEL[ev.usuarioSetor]} ({ev.usuarioNome})
-                  </p>
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{ev.descricao}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {formatarData(ev.createdAt)} · {SETOR_LABEL[ev.usuarioSetor]} ({ev.usuarioNome})
+                      </p>
+                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{ev.descricao}</p>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -345,41 +425,53 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((ev) => (
-                  <tr
-                    key={ev.id}
-                    className="border-b border-zinc-100 align-top last:border-0 dark:border-zinc-900"
-                  >
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
-                      {formatarData(ev.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">
-                      <button
-                        type="button"
-                        onClick={() => abrirDemanda(ev.demandaId)}
-                        className="text-left hover:underline"
+                {grupos.map((grupo) => (
+                  <Fragment key={grupo.titulo}>
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="bg-zinc-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400"
                       >
-                        {ev.demandaTitulo}
-                      </button>
-                      {ev.exemplo && (
-                        <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                          exemplo
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPO_EVENTO_BADGE_CLASS[ev.tipo]}`}
+                        {grupo.titulo}
+                      </td>
+                    </tr>
+                    {grupo.eventos.map((ev) => (
+                      <tr
+                        key={ev.id}
+                        className="border-b border-zinc-100 align-top last:border-0 dark:border-zinc-900"
                       >
-                        {TIPO_EVENTO_LABEL[ev.tipo]}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
-                      <p>{SETOR_LABEL[ev.usuarioSetor]}</p>
-                      <p>{ev.usuarioNome}</p>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">{ev.descricao}</td>
-                  </tr>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                          {formatarData(ev.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">
+                          <button
+                            type="button"
+                            onClick={() => abrirDemanda(ev.demandaId)}
+                            className="text-left hover:underline"
+                          >
+                            {ev.demandaTitulo}
+                          </button>
+                          {ev.exemplo && (
+                            <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                              exemplo
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPO_EVENTO_BADGE_CLASS[ev.tipo]}`}
+                          >
+                            {TIPO_EVENTO_LABEL[ev.tipo]}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                          <p>{SETOR_LABEL[ev.usuarioSetor]}</p>
+                          <p>{ev.usuarioNome}</p>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">{ev.descricao}</td>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
