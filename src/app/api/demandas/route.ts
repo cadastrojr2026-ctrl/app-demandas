@@ -16,6 +16,7 @@ const PRODUTO_VALUES = [
   "ARGOLA",
   "BRINCO_FIXO",
   "BRINCO_MEDIO",
+  "BRINCOS_INFANTIS",
   "CONJUNTOS",
   "CORRENTARIA",
   "ESCAPULARIO",
@@ -61,6 +62,7 @@ const createSchema = z.object({
   prioridade: z.enum(PRIORIDADE_VALUES).optional(),
   prazo: dataOpcional,
   produtos: z.array(z.enum(PRODUTO_VALUES)).optional(),
+  produtoOutroDetalhe: z.string().trim().max(200).optional().nullable(),
   itens: itensSchema,
 });
 
@@ -77,7 +79,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { titulo, descricao, observacao, setorResponsavel, prioridade, prazo, produtos, itens } = parsed.data;
+  const { titulo, descricao, observacao, setorResponsavel, prioridade, prazo, produtos, produtoOutroDetalhe, itens } =
+    parsed.data;
   const setorSolicitante = auth.session.setor;
 
   if (setorResponsavel === setorSolicitante) {
@@ -97,6 +100,7 @@ export async function POST(request: NextRequest) {
       prioridade: prioridade ?? "MEDIA",
       prazo: prazo ? new Date(prazo) : null,
       produtos: produtos ?? [],
+      produtoOutroDetalhe: produtoOutroDetalhe || null,
       criadoPorId: auth.session.userId,
       itens: itens && itens.length > 0 ? { create: itens } : undefined,
     },

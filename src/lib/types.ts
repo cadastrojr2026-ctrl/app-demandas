@@ -17,6 +17,7 @@ export interface DemandaDTO {
   prioridade: Prioridade;
   prazo: string | null;
   produtos: TipoProduto[];
+  produtoOutroDetalhe: string | null;
   itens: ItemProduzidoDTO[];
   criadoPorId: number;
   exemplo: boolean;

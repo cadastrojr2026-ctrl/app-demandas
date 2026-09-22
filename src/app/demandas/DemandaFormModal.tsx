@@ -50,6 +50,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
   const [prioridade, setPrioridade] = useState<Prioridade>(demanda?.prioridade ?? "MEDIA");
   const [prazo, setPrazo] = useState(demanda?.prazo ? demanda.prazo.slice(0, 10) : "");
   const [produtos, setProdutos] = useState<Set<TipoProduto>>(new Set(demanda?.produtos ?? []));
+  const [produtoOutroDetalhe, setProdutoOutroDetalhe] = useState(demanda?.produtoOutroDetalhe ?? "");
   const [itens, setItens] = useState<{ codigo: string; quantidade: string }[]>(
     demanda?.itens.map((i) => ({ codigo: i.codigo, quantidade: String(i.quantidade) })) ?? []
   );
@@ -101,6 +102,7 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
             prioridade,
             prazo: prazo || null,
             produtos: Array.from(produtos),
+            produtoOutroDetalhe: produtos.has("OUTROS") ? produtoOutroDetalhe || null : null,
             itens: itensValidos,
           };
       const res = await fetch(editando ? `/api/demandas/${demanda!.id}` : "/api/demandas", {
@@ -238,6 +240,11 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Produtos (opcional)
+              {produtos.size > 0 && (
+                <span className="ml-1.5 font-normal text-zinc-400 dark:text-zinc-500">
+                  ({produtos.size} selecionado{produtos.size > 1 ? "s" : ""})
+                </span>
+              )}
             </span>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Clique para selecionar um ou mais produtos relacionados a esta demanda.
@@ -263,6 +270,17 @@ export function DemandaFormModal({ session, demanda, onClose, onSaved }: Props) 
                 );
               })}
             </div>
+            {produtos.has("OUTROS") && (
+              <input
+                type="text"
+                disabled={somenteObservacao}
+                value={produtoOutroDetalhe ?? ""}
+                onChange={(e) => setProdutoOutroDetalhe(e.target.value)}
+                maxLength={200}
+                placeholder="Qual? Ex: berloque personalizado"
+                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+              />
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">

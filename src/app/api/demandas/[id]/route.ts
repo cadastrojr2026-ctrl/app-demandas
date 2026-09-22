@@ -18,6 +18,7 @@ const PRODUTO_VALUES = [
   "ARGOLA",
   "BRINCO_FIXO",
   "BRINCO_MEDIO",
+  "BRINCOS_INFANTIS",
   "CONJUNTOS",
   "CORRENTARIA",
   "ESCAPULARIO",
@@ -45,6 +46,7 @@ const patchSchema = z
     prioridade: z.enum(PRIORIDADE_VALUES).optional(),
     prazo: dataOpcional,
     produtos: z.array(z.enum(PRODUTO_VALUES)).optional(),
+    produtoOutroDetalhe: z.string().trim().max(200).optional().nullable(),
     status: z.enum(STATUS_VALUES).optional(),
     itens: itensSchema,
   })
@@ -58,6 +60,7 @@ const CAMPO_LABEL: Record<string, string> = {
   prioridade: "prioridade",
   prazo: "prazo",
   produtos: "produtos",
+  produtoOutroDetalhe: "detalhe do 'Outros'",
   status: "status",
   itens: "itens produzidos",
 };
