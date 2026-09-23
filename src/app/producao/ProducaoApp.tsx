@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { DemandaDetalheModal } from "@/app/demandas/DemandaDetalheModal";
 import { DemandaFormModal } from "@/app/demandas/DemandaFormModal";
-import { SETOR_LABEL, STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/constants";
+import { SETOR_LABEL, SETORES, STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/constants";
 import type { DemandaDTO, SessionInfo } from "@/lib/types";
 import type { Setor, StatusDemanda } from "@/generated/prisma/client";
 
@@ -45,12 +45,16 @@ function formatarData(iso: string) {
   }).format(new Date(iso));
 }
 
+const selectClass =
+  "rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
+
 export function ProducaoApp({ session }: { session: SessionInfo }) {
   const [resumo, setResumo] = useState<ResumoProducao | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [desde, setDesde] = useState("");
   const [ate, setAte] = useState("");
+  const [setor, setSetor] = useState<Setor | "">("");
 
   const [demandaSelecionada, setDemandaSelecionada] = useState<DemandaDTO | null>(null);
   const [carregandoDemanda, setCarregandoDemanda] = useState(false);
@@ -61,6 +65,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
     const params = new URLSearchParams();
     if (desde) params.set("desde", desde);
     if (ate) params.set("ate", ate);
+    if (setor) params.set("setor", setor);
     window.open(`/api/producao/pdf?${params.toString()}`, "_blank");
   }
 
@@ -72,6 +77,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
         const params = new URLSearchParams();
         if (desde) params.set("desde", desde);
         if (ate) params.set("ate", ate);
+        if (setor) params.set("setor", setor);
         const query = params.toString();
         const res = await fetch(`/api/producao${query ? `?${query}` : ""}`);
         if (!res.ok) throw new Error("Falha ao carregar o resumo de produção.");
@@ -83,7 +89,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
         setCarregando(false);
       }
     })();
-  }, [desde, ate]);
+  }, [desde, ate, setor]);
 
   async function abrirDemanda(demandaId: number) {
     setAvisoDemanda(null);
@@ -158,6 +164,18 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
         )}
 
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+          <select
+            value={setor}
+            onChange={(e) => setSetor(e.target.value as Setor | "")}
+            className={selectClass}
+          >
+            <option value="">Setor: todos</option>
+            {SETORES.map((s) => (
+              <option key={s} value={s}>
+                {SETOR_LABEL[s]}
+              </option>
+            ))}
+          </select>
           <label className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
             De
             <input
@@ -176,16 +194,17 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
               className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </label>
-          {(desde || ate) && (
+          {(desde || ate || setor) && (
             <button
               type="button"
               onClick={() => {
                 setDesde("");
                 setAte("");
+                setSetor("");
               }}
               className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
             >
-              Limpar período
+              Limpar filtros
             </button>
           )}
         </div>
