@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
-import type { SessionInfo } from "@/lib/types";
+import { DemandaDetalheModal } from "@/app/demandas/DemandaDetalheModal";
+import { DemandaFormModal } from "@/app/demandas/DemandaFormModal";
+import { SETOR_LABEL, STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/constants";
+import type { DemandaDTO, SessionInfo } from "@/lib/types";
+import type { Setor, StatusDemanda } from "@/generated/prisma/client";
 
 interface ItemPorCodigo {
   codigo: string;
@@ -11,11 +15,34 @@ interface ItemPorCodigo {
   demandas: number;
 }
 
+interface DemandaResumida {
+  id: number;
+  titulo: string;
+  status: StatusDemanda;
+  setorResponsavel: Setor;
+  criadoPorNome: string;
+  createdAt: string;
+}
+
+interface GrupoSolicitante {
+  setor: Setor;
+  demandas: DemandaResumida[];
+}
+
 interface ResumoProducao {
   demandasSolicitadas: number;
   totalPecasProduzidas: number;
   tiposDePeca: number;
   itensPorCodigo: ItemPorCodigo[];
+  porSolicitante: GrupoSolicitante[];
+}
+
+function formatarData(iso: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(new Date(iso));
 }
 
 export function ProducaoApp({ session }: { session: SessionInfo }) {
@@ -24,6 +51,11 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
   const [erro, setErro] = useState<string | null>(null);
   const [desde, setDesde] = useState("");
   const [ate, setAte] = useState("");
+
+  const [demandaSelecionada, setDemandaSelecionada] = useState<DemandaDTO | null>(null);
+  const [carregandoDemanda, setCarregandoDemanda] = useState(false);
+  const [avisoDemanda, setAvisoDemanda] = useState<string | null>(null);
+  const [demandaParaEditar, setDemandaParaEditar] = useState<DemandaDTO | null>(null);
 
   function handleGerarPdf() {
     const params = new URLSearchParams();
@@ -52,6 +84,41 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
       }
     })();
   }, [desde, ate]);
+
+  async function abrirDemanda(demandaId: number) {
+    setAvisoDemanda(null);
+    setCarregandoDemanda(true);
+    try {
+      const res = await fetch(`/api/demandas/${demandaId}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setAvisoDemanda(
+          res.status === 404
+            ? "Essa demanda foi excluída — só o registro de produção continua disponível."
+            : (data.error ?? "Não foi possível abrir a demanda.")
+        );
+        return;
+      }
+      setDemandaSelecionada(data.demanda);
+    } catch {
+      setAvisoDemanda("Erro de conexão. Tente novamente.");
+    } finally {
+      setCarregandoDemanda(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!avisoDemanda) return;
+    const t = setTimeout(() => setAvisoDemanda(null), 5000);
+    return () => clearTimeout(t);
+  }, [avisoDemanda]);
+
+  const isAdmin = session.role === "ADMIN";
+  const podeEditarSelecionada =
+    !!demandaSelecionada &&
+    (isAdmin ||
+      demandaSelecionada.criadoPorId === session.userId ||
+      demandaSelecionada.setorResponsavel === session.setor);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black md:flex-row">
@@ -83,6 +150,12 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
             </Link>
           </div>
         </div>
+
+        {avisoDemanda && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-500/10 dark:text-amber-300">
+            {avisoDemanda}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
           <label className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
@@ -150,6 +223,65 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
               </div>
             </div>
 
+            {resumo.porSolicitante.length > 0 && (
+              <div className="flex flex-col gap-4">
+                <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                  Demandas por solicitante
+                </h2>
+                {resumo.porSolicitante.map((grupo) => (
+                  <div key={grupo.setor} className="flex flex-col gap-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                      {SETOR_LABEL[grupo.setor]} ({grupo.demandas.length})
+                    </h3>
+                    <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+                      <table className="w-full min-w-[560px] border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                            <th className="px-4 py-3 font-medium">Demanda</th>
+                            <th className="px-4 py-3 font-medium">Responsável</th>
+                            <th className="px-4 py-3 font-medium">Status</th>
+                            <th className="px-4 py-3 font-medium">Criado por / em</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {grupo.demandas.map((d) => (
+                            <tr
+                              key={d.id}
+                              className="border-b border-zinc-100 align-top last:border-0 dark:border-zinc-900"
+                            >
+                              <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">
+                                <button
+                                  type="button"
+                                  onClick={() => abrirDemanda(d.id)}
+                                  className="text-left hover:underline"
+                                >
+                                  {d.titulo}
+                                </button>
+                              </td>
+                              <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
+                                {SETOR_LABEL[d.setorResponsavel]}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASS[d.status]}`}
+                                >
+                                  {STATUS_LABEL[d.status]}
+                                </span>
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                                <p>{d.criadoPorNome}</p>
+                                <p>{formatarData(d.createdAt)}</p>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div>
               <h2 className="mb-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                 Por código ({resumo.itensPorCodigo.length})
@@ -190,6 +322,36 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
           </>
         ) : null}
       </main>
+
+      {carregandoDemanda && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <p className="rounded-lg bg-white px-4 py-2 text-sm text-zinc-700 shadow-lg dark:bg-zinc-950 dark:text-zinc-300">
+            Abrindo demanda...
+          </p>
+        </div>
+      )}
+
+      {demandaSelecionada && (
+        <DemandaDetalheModal
+          demanda={demandaSelecionada}
+          onClose={() => setDemandaSelecionada(null)}
+          podeEditar={podeEditarSelecionada}
+          onEditar={() => {
+            setDemandaParaEditar(demandaSelecionada);
+            setDemandaSelecionada(null);
+          }}
+          onVerHistorico={() => setDemandaSelecionada(null)}
+        />
+      )}
+
+      {demandaParaEditar && (
+        <DemandaFormModal
+          session={session}
+          demanda={demandaParaEditar}
+          onClose={() => setDemandaParaEditar(null)}
+          onSaved={() => setDemandaParaEditar(null)}
+        />
+      )}
     </div>
   );
 }
