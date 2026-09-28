@@ -137,15 +137,14 @@ function ItemProduzidoLinha({
         </ul>
       )}
 
-      {podeEditar && restante > 0 && (
+      {podeEditar && (
         <form onSubmit={handleRegistrar} className="flex items-center gap-1.5">
           <input
             type="number"
             min={1}
-            max={restante}
             value={quantidade}
             onChange={(e) => setQuantidade(e.target.value)}
-            placeholder={`Entregar (máx. ${restante})`}
+            placeholder={restante > 0 ? `Entregar (restam ${restante})` : "Entregar"}
             className="w-40 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
           <button

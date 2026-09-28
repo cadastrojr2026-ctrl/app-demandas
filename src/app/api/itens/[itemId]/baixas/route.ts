@@ -61,14 +61,9 @@ export async function POST(
     );
   }
 
+  // Aceita baixa mesmo que ultrapasse a quantidade registrada no item (ex: item de 1000,
+  // baixas somam 1010) — a peça pode ter sido entregue a mais do que o previsto.
   const jaEntregue = item.baixas.reduce((soma, b) => soma + b.quantidade, 0);
-  const restante = item.quantidade - jaEntregue;
-  if (parsed.data.quantidade > restante) {
-    return NextResponse.json(
-      { error: `Quantidade maior que o restante a entregar (${restante}).` },
-      { status: 400 }
-    );
-  }
 
   const baixa = await prisma.itemBaixa.create({
     data: {
