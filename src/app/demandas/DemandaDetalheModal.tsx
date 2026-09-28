@@ -37,14 +37,17 @@ function ItemProduzidoLinha({
   item,
   podeEditar,
   onBaixaRegistrada,
+  onBaixaRemovida,
 }: {
   item: ItemProduzidoDTO;
   podeEditar: boolean;
   onBaixaRegistrada: (itemId: number, baixa: ItemBaixaDTO) => void;
+  onBaixaRemovida: (itemId: number, baixaId: number) => void;
 }) {
   const [expandido, setExpandido] = useState(false);
   const [quantidade, setQuantidade] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [removendoId, setRemovendoId] = useState<number | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   const entregue = item.baixas.reduce((soma, b) => soma + b.quantidade, 0);
@@ -75,6 +78,24 @@ function ItemProduzidoLinha({
     }
   }
 
+  async function handleRemover(baixaId: number) {
+    setErro(null);
+    setRemovendoId(baixaId);
+    try {
+      const res = await fetch(`/api/baixas/${baixaId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErro(data.error ?? "Não foi possível excluir a baixa.");
+        return;
+      }
+      onBaixaRemovida(item.id, baixaId);
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
+    } finally {
+      setRemovendoId(null);
+    }
+  }
+
   return (
     <li className="flex flex-col gap-1.5 rounded-lg border border-zinc-100 px-2.5 py-2 dark:border-zinc-800">
       <div className="flex items-center justify-between gap-3 text-sm">
@@ -96,8 +117,21 @@ function ItemProduzidoLinha({
       {expandido && (
         <ul className="flex flex-col gap-0.5 border-l border-zinc-200 pl-2 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
           {item.baixas.map((b) => (
-            <li key={b.id}>
-              {formatarData(b.createdAt)} — {b.quantidade} un. ({b.criadoPor.nome})
+            <li key={b.id} className="flex items-center justify-between gap-2">
+              <span>
+                {formatarData(b.createdAt)} — {b.quantidade} un. ({b.criadoPor.nome})
+              </span>
+              {podeEditar && (
+                <button
+                  type="button"
+                  onClick={() => handleRemover(b.id)}
+                  disabled={removendoId === b.id}
+                  title="Excluir baixa (dada por engano)"
+                  className="shrink-0 text-red-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400"
+                >
+                  {removendoId === b.id ? "..." : "Excluir"}
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -153,6 +187,12 @@ export function DemandaDetalheModal({
 
   function handleBaixaRegistrada(itemId: number, baixa: ItemBaixaDTO) {
     setItens((atual) => atual.map((i) => (i.id === itemId ? { ...i, baixas: [...i.baixas, baixa] } : i)));
+  }
+
+  function handleBaixaRemovida(itemId: number, baixaId: number) {
+    setItens((atual) =>
+      atual.map((i) => (i.id === itemId ? { ...i, baixas: i.baixas.filter((b) => b.id !== baixaId) } : i))
+    );
   }
 
   return (
@@ -254,6 +294,7 @@ export function DemandaDetalheModal({
                   item={item}
                   podeEditar={podeEditar}
                   onBaixaRegistrada={handleBaixaRegistrada}
+                  onBaixaRemovida={handleBaixaRemovida}
                 />
               ))}
             </ul>
