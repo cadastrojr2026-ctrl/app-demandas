@@ -136,12 +136,16 @@ export function DemandaDetalheModal({
   onEditar,
   onVerHistorico,
   podeEditar,
+  onExcluir,
 }: {
   demanda: DemandaDTO;
   onClose: () => void;
   onEditar: () => void;
   onVerHistorico: () => void;
   podeEditar: boolean;
+  // Só passado pelas telas que oferecem excluir por aqui (hoje só o Histórico, e só pro
+  // administrador) — quando ausente, o botão "Excluir" nem aparece.
+  onExcluir?: () => void;
 }) {
   // Estado local (baixas registradas nesta sessão do modal) — o chamador deve renderizar com
   // key={demanda.id} pra esse estado resetar sozinho quando o modal trocar de demanda.
@@ -280,6 +284,15 @@ export function DemandaDetalheModal({
         )}
 
         <div className="mt-5 flex justify-end gap-2">
+          {onExcluir && (
+            <button
+              type="button"
+              onClick={onExcluir}
+              className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/40"
+            >
+              Excluir
+            </button>
+          )}
           <button
             type="button"
             onClick={onVerHistorico}

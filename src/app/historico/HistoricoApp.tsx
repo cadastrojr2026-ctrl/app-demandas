@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { DemandaDetalheModal } from "@/app/demandas/DemandaDetalheModal";
 import { DemandaFormModal } from "@/app/demandas/DemandaFormModal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   SETOR_LABEL,
   SETORES,
@@ -82,6 +83,8 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
   const [carregandoDemanda, setCarregandoDemanda] = useState(false);
   const [avisoDemanda, setAvisoDemanda] = useState<string | null>(null);
   const [demandaParaEditar, setDemandaParaEditar] = useState<DemandaDTO | null>(null);
+  const [demandaParaExcluir, setDemandaParaExcluir] = useState<DemandaDTO | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   const construirQuery = useCallback(
     (cursor?: number | null) => {
@@ -102,25 +105,29 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
     [desde, ate, setor, filtroEvento]
   );
 
-  useEffect(() => {
-    (async () => {
-      setCarregando(true);
-      setErro(null);
-      setFiltroDemandaId(null);
-      try {
-        const query = construirQuery();
-        const res = await fetch(`/api/historico${query ? `?${query}` : ""}`);
-        if (!res.ok) throw new Error("Falha ao carregar histórico.");
-        const data = await res.json();
-        setEventos(data.eventos);
-        setProximoCursor(data.proximoCursor ?? null);
-      } catch (e) {
-        setErro(e instanceof Error ? e.message : "Erro desconhecido.");
-      } finally {
-        setCarregando(false);
-      }
-    })();
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      const query = construirQuery();
+      const res = await fetch(`/api/historico${query ? `?${query}` : ""}`);
+      if (!res.ok) throw new Error("Falha ao carregar histórico.");
+      const data = await res.json();
+      setEventos(data.eventos);
+      setProximoCursor(data.proximoCursor ?? null);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro desconhecido.");
+    } finally {
+      setCarregando(false);
+    }
   }, [construirQuery]);
+
+  useEffect(() => {
+    // Busca inicial e recargas de filtro disparam fetch (e setState) fora do fluxo síncrono do efeito.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFiltroDemandaId(null);
+    carregar();
+  }, [carregar]);
 
   async function carregarMais() {
     if (!proximoCursor) return;
@@ -184,6 +191,24 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
     const t = setTimeout(() => setAvisoDemanda(null), 5000);
     return () => clearTimeout(t);
   }, [avisoDemanda]);
+
+  async function handleExcluir() {
+    if (!demandaParaExcluir) return;
+    setExcluindo(true);
+    try {
+      const res = await fetch(`/api/demandas/${demandaParaExcluir.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setAvisoDemanda(data.error ?? "Não foi possível excluir a demanda.");
+        return;
+      }
+      setAvisoDemanda(`Demanda "${demandaParaExcluir.titulo}" excluída.`);
+      await carregar();
+    } finally {
+      setExcluindo(false);
+      setDemandaParaExcluir(null);
+    }
+  }
 
   const filtrados = useMemo(() => {
     return eventos.filter((ev) => {
@@ -515,6 +540,14 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
             setFiltroDemandaId(demandaSelecionada.id);
             setDemandaSelecionada(null);
           }}
+          onExcluir={
+            isAdmin
+              ? () => {
+                  setDemandaParaExcluir(demandaSelecionada);
+                  setDemandaSelecionada(null);
+                }
+              : undefined
+          }
         />
       )}
 
@@ -524,6 +557,18 @@ export function HistoricoApp({ session }: { session: SessionInfo }) {
           demanda={demandaParaEditar}
           onClose={() => setDemandaParaEditar(null)}
           onSaved={() => setDemandaParaEditar(null)}
+        />
+      )}
+
+      {demandaParaExcluir && (
+        <ConfirmDialog
+          title="Excluir demanda"
+          description={`Tem certeza que deseja excluir "${demandaParaExcluir.titulo}"? Esta ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          danger
+          loading={excluindo}
+          onConfirm={handleExcluir}
+          onCancel={() => setDemandaParaExcluir(null)}
         />
       )}
     </div>
