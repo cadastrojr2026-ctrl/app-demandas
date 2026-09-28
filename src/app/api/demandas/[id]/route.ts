@@ -9,6 +9,18 @@ import { itensSchema } from "@/lib/itemProduzido";
 import { SETOR_LABEL, STATUS_LABEL } from "@/lib/constants";
 import type { Prisma } from "@/generated/prisma/client";
 
+// Item produzido + suas baixas (entregas parciais), cada uma com data e quem registrou —
+// usado tanto na leitura quanto na resposta de edição, pra nunca divergirem.
+const ITEM_SELECT = {
+  id: true,
+  codigo: true,
+  quantidade: true,
+  baixas: {
+    orderBy: { createdAt: "asc" },
+    select: { id: true, quantidade: true, createdAt: true, criadoPor: { select: { nome: true } } },
+  },
+} satisfies Prisma.ItemProduzidoSelect;
+
 // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
 const SETOR_RESPONSAVEL_VALUES = ["ALMOXARIFADO", "FUNDICAO"] as const;
 const STATUS_VALUES = [
@@ -95,7 +107,7 @@ export async function GET(
     where: { id },
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
-      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
+      itens: { orderBy: { id: "asc" }, select: ITEM_SELECT },
     },
   });
   if (!demanda) return NextResponse.json({ error: "Demanda não encontrada." }, { status: 404 });
@@ -173,11 +185,6 @@ export async function PATCH(
   if ("prazo" in parsed.data) {
     data.prazo = prazo ? new Date(prazo) : null;
   }
-  if (itens !== undefined) {
-    // Substitui o conjunto inteiro de itens (mesma lógica de "produtos": o formulário sempre
-    // manda a lista completa, não um item por vez) — apaga os antigos e cria os novos.
-    data.itens = { deleteMany: {}, create: itens };
-  }
 
   const setorResponsavelFinal = data.setorResponsavel ?? demanda.setorResponsavel;
   if (setorResponsavelFinal === demanda.setorSolicitante) {
@@ -187,12 +194,60 @@ export async function PATCH(
     );
   }
 
+  if (itens !== undefined) {
+    const existentes = await prisma.itemProduzido.findMany({
+      where: { demandaId: id },
+      select: { id: true, codigo: true, baixas: { select: { quantidade: true } } },
+    });
+    const porCodigo = new Map(existentes.map((i) => [i.codigo, i]));
+    const codigosNovos = new Set(itens.map((i) => i.codigo));
+
+    for (const item of itens) {
+      const existente = porCodigo.get(item.codigo);
+      if (existente) {
+        const jaEntregue = existente.baixas.reduce((soma, b) => soma + b.quantidade, 0);
+        if (item.quantidade < jaEntregue) {
+          return NextResponse.json(
+            { error: `A quantidade de "${item.codigo}" não pode ser menor que o já entregue (${jaEntregue}).` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    const itemComBaixaRemovido = existentes.find((i) => !codigosNovos.has(i.codigo) && i.baixas.length > 0);
+    if (itemComBaixaRemovido) {
+      return NextResponse.json(
+        { error: `Não é possível remover "${itemComBaixaRemovido.codigo}": já tem baixa registrada.` },
+        { status: 400 }
+      );
+    }
+
+    // Atualiza por código em vez de apagar tudo e recriar (como em "produtos"): preserva o id
+    // de quem já existia — e as baixas registradas contra ele — mesmo quando o formulário
+    // reenvia a lista inteira a cada edição.
+    const idsParaRemover = existentes.filter((i) => !codigosNovos.has(i.codigo)).map((i) => i.id);
+    const itensNovos = itens.filter((item) => !porCodigo.has(item.codigo));
+    const itensAtualizados = itens
+      .filter((item) => porCodigo.has(item.codigo))
+      .map((item) => ({
+        where: { id: porCodigo.get(item.codigo)!.id },
+        data: { quantidade: item.quantidade },
+      }));
+
+    data.itens = {
+      ...(idsParaRemover.length > 0 ? { deleteMany: { id: { in: idsParaRemover } } } : {}),
+      ...(itensAtualizados.length > 0 ? { update: itensAtualizados } : {}),
+      ...(itensNovos.length > 0 ? { create: itensNovos } : {}),
+    };
+  }
+
   const atualizada = await prisma.demanda.update({
     where: { id },
     data,
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
-      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
+      itens: { orderBy: { id: "asc" }, select: ITEM_SELECT },
     },
   });
 

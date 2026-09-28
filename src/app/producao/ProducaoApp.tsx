@@ -368,6 +368,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
 
       {demandaSelecionada && (
         <DemandaDetalheModal
+          key={demandaSelecionada.id}
           demanda={demandaSelecionada}
           onClose={() => setDemandaSelecionada(null)}
           podeEditar={podeEditarSelecionada}

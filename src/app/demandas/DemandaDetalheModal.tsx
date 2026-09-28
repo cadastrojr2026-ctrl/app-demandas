@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   PRIORIDADE_BADGE_CLASS,
   PRIORIDADE_LABEL,
@@ -8,7 +9,7 @@ import {
   STATUS_BADGE_CLASS,
   STATUS_LABEL,
 } from "@/lib/constants";
-import type { DemandaDTO } from "@/lib/types";
+import type { DemandaDTO, ItemBaixaDTO, ItemProduzidoDTO } from "@/lib/types";
 
 function formatarData(iso: string) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -29,6 +30,104 @@ function formatarPrazo(iso: string) {
   }).format(new Date(iso));
 }
 
+// Uma linha de item produzido, com seu histórico de baixas (entregas parciais) — cada baixa
+// tem sua própria data e nunca altera a "quantidade" do item, que continua sendo o total
+// produzido/pedido. Só quem pode editar a demanda registra novas baixas.
+function ItemProduzidoLinha({
+  item,
+  podeEditar,
+  onBaixaRegistrada,
+}: {
+  item: ItemProduzidoDTO;
+  podeEditar: boolean;
+  onBaixaRegistrada: (itemId: number, baixa: ItemBaixaDTO) => void;
+}) {
+  const [expandido, setExpandido] = useState(false);
+  const [quantidade, setQuantidade] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const entregue = item.baixas.reduce((soma, b) => soma + b.quantidade, 0);
+  const restante = item.quantidade - entregue;
+
+  async function handleRegistrar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    setEnviando(true);
+    try {
+      const res = await fetch(`/api/itens/${item.id}/baixas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantidade: Number(quantidade) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErro(data.error ?? "Não foi possível registrar a baixa.");
+        return;
+      }
+      onBaixaRegistrada(item.id, data.baixa);
+      setQuantidade("");
+      setExpandido(true);
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <li className="flex flex-col gap-1.5 rounded-lg border border-zinc-100 px-2.5 py-2 dark:border-zinc-800">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-zinc-800 dark:text-zinc-200">{item.codigo}</span>
+        <span className="text-zinc-500 dark:text-zinc-400">
+          {entregue > 0 ? `${entregue} / ${item.quantidade} entregue` : item.quantidade}
+        </span>
+      </div>
+
+      {item.baixas.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpandido((v) => !v)}
+          className="self-start text-xs font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
+        >
+          {expandido ? "Ocultar" : "Ver"} {item.baixas.length} baixa{item.baixas.length > 1 ? "s" : ""}
+        </button>
+      )}
+      {expandido && (
+        <ul className="flex flex-col gap-0.5 border-l border-zinc-200 pl-2 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+          {item.baixas.map((b) => (
+            <li key={b.id}>
+              {formatarData(b.createdAt)} — {b.quantidade} un. ({b.criadoPor.nome})
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {podeEditar && restante > 0 && (
+        <form onSubmit={handleRegistrar} className="flex items-center gap-1.5">
+          <input
+            type="number"
+            min={1}
+            max={restante}
+            value={quantidade}
+            onChange={(e) => setQuantidade(e.target.value)}
+            placeholder={`Entregar (máx. ${restante})`}
+            className="w-40 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          />
+          <button
+            type="submit"
+            disabled={enviando || !quantidade}
+            className="rounded-lg bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            Dar baixa
+          </button>
+        </form>
+      )}
+      {erro && <p className="text-xs text-red-600 dark:text-red-400">{erro}</p>}
+    </li>
+  );
+}
+
 // Visão completa e só-leitura de uma demanda (sem os truncamentos de linha da listagem) —
 // aberta ao clicar na demanda, disponível tanto pro admin quanto pros usuários comuns.
 export function DemandaDetalheModal({
@@ -44,6 +143,14 @@ export function DemandaDetalheModal({
   onVerHistorico: () => void;
   podeEditar: boolean;
 }) {
+  // Estado local (baixas registradas nesta sessão do modal) — o chamador deve renderizar com
+  // key={demanda.id} pra esse estado resetar sozinho quando o modal trocar de demanda.
+  const [itens, setItens] = useState(demanda.itens);
+
+  function handleBaixaRegistrada(itemId: number, baixa: ItemBaixaDTO) {
+    setItens((atual) => atual.map((i) => (i.id === itemId ? { ...i, baixas: [...i.baixas, baixa] } : i)));
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8" onClick={onClose}>
       <div
@@ -131,21 +238,19 @@ export function DemandaDetalheModal({
           </div>
         )}
 
-        {demanda.itens.length > 0 && (
+        {itens.length > 0 && (
           <div className="mt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               Itens produzidos
             </p>
-            <div className="mt-2 flex items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-              <span>Código</span>
-              <span>Quantidade</span>
-            </div>
-            <ul className="mt-1 flex flex-col gap-0.5 text-sm text-zinc-800 dark:text-zinc-200">
-              {demanda.itens.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3">
-                  <span>{item.codigo}</span>
-                  <span className="text-zinc-500 dark:text-zinc-400">{item.quantidade}</span>
-                </li>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {itens.map((item) => (
+                <ItemProduzidoLinha
+                  key={item.id}
+                  item={item}
+                  podeEditar={podeEditar}
+                  onBaixaRegistrada={handleBaixaRegistrada}
+                />
               ))}
             </ul>
           </div>

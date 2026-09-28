@@ -13,3 +13,13 @@ export const itemSchema = z.object({
 });
 
 export const itensSchema = z.array(itemSchema).max(50).optional();
+
+// Baixa (entrega parcial) registrada contra um item já produzido — só a quantidade entregue
+// agora, nunca a quantidade total do item (essa não muda).
+export const baixaSchema = z.object({
+  quantidade: z
+    .coerce
+    .number()
+    .int("Quantidade deve ser um número inteiro.")
+    .positive("Quantidade deve ser maior que zero."),
+});

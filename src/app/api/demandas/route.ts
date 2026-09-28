@@ -7,6 +7,19 @@ import { notificarSetor } from "@/lib/notificacoes";
 import { buildDemandasWhere } from "@/lib/demandasFiltro";
 import { itensSchema } from "@/lib/itemProduzido";
 import { PRIORIDADE_LABEL, PRODUTO_LABEL, SETOR_LABEL } from "@/lib/constants";
+import type { Prisma } from "@/generated/prisma/client";
+
+// Item produzido + suas baixas (entregas parciais), cada uma com data e quem registrou —
+// usado tanto na listagem quanto na resposta de criação, pra nunca divergirem.
+const ITEM_SELECT = {
+  id: true,
+  codigo: true,
+  quantidade: true,
+  baixas: {
+    orderBy: { createdAt: "asc" },
+    select: { id: true, quantidade: true, createdAt: true, criadoPor: { select: { nome: true } } },
+  },
+} satisfies Prisma.ItemProduzidoSelect;
 
 // Estoque só solicita — nunca é o setor responsável por atender uma demanda.
 const SETOR_RESPONSAVEL_VALUES = ["ALMOXARIFADO", "FUNDICAO"] as const;
@@ -40,7 +53,7 @@ export async function GET(request: NextRequest) {
     orderBy: [{ createdAt: "desc" }],
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
-      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
+      itens: { orderBy: { id: "asc" }, select: ITEM_SELECT },
     },
   });
 
@@ -106,7 +119,7 @@ export async function POST(request: NextRequest) {
     },
     include: {
       criadoPor: { select: { id: true, nome: true, setor: true } },
-      itens: { orderBy: { id: "asc" }, select: { id: true, codigo: true, quantidade: true } },
+      itens: { orderBy: { id: "asc" }, select: ITEM_SELECT },
     },
   });
 

@@ -203,6 +203,7 @@ export function DemandasApp({ session }: { session: SessionInfo }) {
 
       {paraDetalhe && (
         <DemandaDetalheModal
+          key={paraDetalhe.id}
           demanda={paraDetalhe}
           onClose={() => setParaDetalhe(null)}
           onVerHistorico={() => {
