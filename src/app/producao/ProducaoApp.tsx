@@ -139,8 +139,8 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Produção</h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {session.role === "ADMIN"
-                ? "Peças produzidas e demandas solicitadas, a partir dos itens registrados em cada demanda."
-                : "Peças produzidas e demandas solicitadas pelo seu setor, a partir dos itens registrados em cada demanda."}
+                ? "Peças efetivamente entregues (baixas) no período e demandas solicitadas, a partir dos itens registrados em cada demanda."
+                : "Peças efetivamente entregues (baixas) no período e demandas solicitadas pelo seu setor, a partir dos itens registrados em cada demanda."}
             </p>
           </div>
           <div className="flex gap-2">
@@ -225,6 +225,13 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
           )}
         </div>
 
+        {(desde || ate) && (
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+            O período filtra “Peças entregues” e “Por código” pela data de cada baixa — “Demandas
+            solicitadas” e “Demandas por solicitante” continuam pela data em que a demanda foi criada.
+          </p>
+        )}
+
         {carregando ? (
           <p className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">Carregando...</p>
         ) : erro ? (
@@ -242,7 +249,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  Peças produzidas
+                  Peças entregues (baixa)
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
                   {resumo.totalPecasProduzidas}
@@ -250,7 +257,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  Tipos de peça produzidos
+                  Tipos de peça entregues
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
                   {resumo.tiposDePeca}
@@ -323,8 +330,8 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
               </h2>
               {resumo.itensPorCodigo.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
-                  Nenhum item produzido registrado ainda. Adicione itens (código + quantidade) ao editar
-                  uma demanda.
+                  Nenhuma baixa registrada no período. Dê baixa nos itens de uma demanda pra eles
+                  aparecerem aqui.
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -332,7 +339,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
                     <thead>
                       <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
                         <th className="px-4 py-3 font-medium">Código</th>
-                        <th className="px-4 py-3 font-medium">Quantidade produzida</th>
+                        <th className="px-4 py-3 font-medium">Quantidade entregue</th>
                         <th className="px-4 py-3 font-medium">Em quantas demandas</th>
                       </tr>
                     </thead>

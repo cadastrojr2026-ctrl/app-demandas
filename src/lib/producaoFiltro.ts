@@ -39,3 +39,32 @@ export function buildProducaoWhere(searchParams: URLSearchParams, session: Sessi
 
   return where;
 }
+
+// Filtro das baixas (entregas parciais) que alimentam "Peças" na Produção — o período aqui é
+// sobre a data da própria baixa (quando a peça foi de fato entregue), não a data da demanda,
+// pra uma baixa dada esse mês contar nesse mês mesmo que a demanda seja antiga.
+export function buildBaixasWhere(searchParams: URLSearchParams, session: SessionInfo): Prisma.ItemBaixaWhereInput {
+  const desde = parseData(searchParams.get("desde"), false);
+  const ate = parseData(searchParams.get("ate"), true);
+  const setorSolicitante = parseSetor(searchParams.get("setorSolicitante"));
+  const setorResponsavel = parseSetor(searchParams.get("setorResponsavel"));
+
+  const where: Prisma.ItemBaixaWhereInput = {};
+  if (desde || ate) {
+    where.createdAt = {};
+    if (desde) where.createdAt.gte = desde;
+    if (ate) where.createdAt.lte = ate;
+  }
+
+  const demandaWhere: Prisma.DemandaWhereInput = {};
+  if (setorSolicitante) demandaWhere.setorSolicitante = setorSolicitante;
+  if (setorResponsavel) demandaWhere.setorResponsavel = setorResponsavel;
+  if (session.role !== "ADMIN") {
+    demandaWhere.OR = [{ setorSolicitante: session.setor }, { setorResponsavel: session.setor }];
+  }
+  if (Object.keys(demandaWhere).length > 0) {
+    where.item = { demanda: demandaWhere };
+  }
+
+  return where;
+}
