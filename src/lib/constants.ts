@@ -21,6 +21,7 @@ export const SETOR_LABEL: Record<Setor, string> = {
 export const STATUS_ORDER: StatusDemanda[] = [
   "PENDENTE",
   "EM_ANDAMENTO",
+  "ENTREGUE_PARCIAL",
   "ENTREGUE",
   "CONCLUIDA",
   "CANCELADA",
@@ -29,6 +30,7 @@ export const STATUS_ORDER: StatusDemanda[] = [
 export const STATUS_LABEL: Record<StatusDemanda, string> = {
   PENDENTE: "Pendente",
   EM_ANDAMENTO: "Em andamento",
+  ENTREGUE_PARCIAL: "Entregue parcialmente",
   ENTREGUE: "Entregue",
   CONCLUIDA: "Concluída",
   CANCELADA: "Cancelada",
@@ -40,6 +42,8 @@ export const STATUS_BADGE_CLASS: Record<StatusDemanda, string> = {
     "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-400/20",
   EM_ANDAMENTO:
     "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 ring-1 ring-inset ring-blue-600/20 dark:ring-blue-400/20",
+  ENTREGUE_PARCIAL:
+    "bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300 ring-1 ring-inset ring-orange-600/20 dark:ring-orange-400/20",
   ENTREGUE:
     "bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300 ring-1 ring-inset ring-violet-600/20 dark:ring-violet-400/20",
   CONCLUIDA:

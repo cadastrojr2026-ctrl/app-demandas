@@ -5,7 +5,14 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { SessionInfo } from "@/lib/types";
 
 const SETOR_VALUES = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"] as const;
-const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "ENTREGUE", "CONCLUIDA", "CANCELADA"] as const;
+const STATUS_VALUES = [
+  "PENDENTE",
+  "EM_ANDAMENTO",
+  "ENTREGUE_PARCIAL",
+  "ENTREGUE",
+  "CONCLUIDA",
+  "CANCELADA",
+] as const;
 const TIPO_VALUES = ["CRIADA", "EDITADA", "STATUS_ALTERADO", "EXCLUIDA"] as const;
 
 export function parseData(v: string | null, fimDoDia: boolean): Date | undefined {

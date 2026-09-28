@@ -1,5 +1,6 @@
-// Filtro do relatório de Produção (período + setor + visibilidade por setor) — compartilhado
-// entre o resumo em JSON (/api/producao) e o PDF (/api/producao/pdf), pra nunca divergirem.
+// Filtro do relatório de Produção (período + solicitante/responsável + visibilidade por setor)
+// — compartilhado entre o resumo em JSON (/api/producao) e o PDF (/api/producao/pdf), pra nunca
+// divergirem.
 import type { Prisma, Setor } from "@/generated/prisma/client";
 import type { SessionInfo } from "@/lib/types";
 import { SETORES } from "@/lib/constants";
@@ -10,13 +11,15 @@ export function parseData(v: string | null, fimDoDia: boolean): Date | undefined
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
+function parseSetor(v: string | null): Setor | undefined {
+  return v && (SETORES as readonly string[]).includes(v) ? (v as Setor) : undefined;
+}
+
 export function buildProducaoWhere(searchParams: URLSearchParams, session: SessionInfo): Prisma.DemandaWhereInput {
   const desde = parseData(searchParams.get("desde"), false);
   const ate = parseData(searchParams.get("ate"), true);
-  const setorParam = searchParams.get("setor");
-  const setor = (setorParam && (SETORES as readonly string[]).includes(setorParam) ? setorParam : undefined) as
-    | Setor
-    | undefined;
+  const setorSolicitante = parseSetor(searchParams.get("setorSolicitante"));
+  const setorResponsavel = parseSetor(searchParams.get("setorResponsavel"));
 
   const where: Prisma.DemandaWhereInput = {};
   if (desde || ate) {
@@ -24,18 +27,14 @@ export function buildProducaoWhere(searchParams: URLSearchParams, session: Sessi
     if (desde) where.createdAt.gte = desde;
     if (ate) where.createdAt.lte = ate;
   }
+  if (setorSolicitante) where.setorSolicitante = setorSolicitante;
+  if (setorResponsavel) where.setorResponsavel = setorResponsavel;
 
-  // Cada condição de setor (visibilidade do usuário + filtro escolhido na tela) é um OR entre
-  // solicitante/responsável — combinadas com AND pra não uma sobrescrever a outra.
-  const condicoesSetor: Prisma.DemandaWhereInput[] = [];
+  // Almoxarifado e Fundição só veem as demandas do próprio setor (que solicitaram ou que
+  // atendem) — o Estoque (admin) continua vendo tudo. Combina com AND pros filtros de
+  // solicitante/responsável escolhidos na tela não sobrescreverem essa visibilidade.
   if (session.role !== "ADMIN") {
-    condicoesSetor.push({ OR: [{ setorSolicitante: session.setor }, { setorResponsavel: session.setor }] });
-  }
-  if (setor) {
-    condicoesSetor.push({ OR: [{ setorSolicitante: setor }, { setorResponsavel: setor }] });
-  }
-  if (condicoesSetor.length > 0) {
-    where.AND = condicoesSetor;
+    where.AND = [{ OR: [{ setorSolicitante: session.setor }, { setorResponsavel: session.setor }] }];
   }
 
   return where;

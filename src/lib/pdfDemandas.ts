@@ -28,6 +28,7 @@ export interface DemandaParaPdf {
 const COR_STATUS: Record<StatusDemanda, { fundo: string; texto: string }> = {
   PENDENTE: { fundo: "#fef3c7", texto: "#92400e" },
   EM_ANDAMENTO: { fundo: "#dbeafe", texto: "#1e40af" },
+  ENTREGUE_PARCIAL: { fundo: "#ffedd5", texto: "#9a3412" },
   ENTREGUE: { fundo: "#ede9fe", texto: "#5b21b6" },
   CONCLUIDA: { fundo: "#d1fae5", texto: "#065f46" },
   CANCELADA: { fundo: "#e5e5e5", texto: "#404040" },

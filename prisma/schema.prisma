@@ -24,6 +24,7 @@ enum Role {
 enum StatusDemanda {
   PENDENTE
   EM_ANDAMENTO
+  ENTREGUE_PARCIAL
   ENTREGUE
   CONCLUIDA
   CANCELADA

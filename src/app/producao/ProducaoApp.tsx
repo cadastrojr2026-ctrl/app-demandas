@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { DemandaDetalheModal } from "@/app/demandas/DemandaDetalheModal";
 import { DemandaFormModal } from "@/app/demandas/DemandaFormModal";
-import { SETOR_LABEL, SETORES, STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/constants";
+import { SETOR_LABEL, SETORES, SETORES_RESPONSAVEL, STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/constants";
 import type { DemandaDTO, SessionInfo } from "@/lib/types";
 import type { Setor, StatusDemanda } from "@/generated/prisma/client";
 
@@ -54,7 +54,8 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
   const [erro, setErro] = useState<string | null>(null);
   const [desde, setDesde] = useState("");
   const [ate, setAte] = useState("");
-  const [setor, setSetor] = useState<Setor | "">("");
+  const [setorSolicitante, setSetorSolicitante] = useState<Setor | "">("");
+  const [setorResponsavel, setSetorResponsavel] = useState<Setor | "">("");
 
   const [demandaSelecionada, setDemandaSelecionada] = useState<DemandaDTO | null>(null);
   const [carregandoDemanda, setCarregandoDemanda] = useState(false);
@@ -65,7 +66,8 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
     const params = new URLSearchParams();
     if (desde) params.set("desde", desde);
     if (ate) params.set("ate", ate);
-    if (setor) params.set("setor", setor);
+    if (setorSolicitante) params.set("setorSolicitante", setorSolicitante);
+    if (setorResponsavel) params.set("setorResponsavel", setorResponsavel);
     window.open(`/api/producao/pdf?${params.toString()}`, "_blank");
   }
 
@@ -77,7 +79,8 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
         const params = new URLSearchParams();
         if (desde) params.set("desde", desde);
         if (ate) params.set("ate", ate);
-        if (setor) params.set("setor", setor);
+        if (setorSolicitante) params.set("setorSolicitante", setorSolicitante);
+        if (setorResponsavel) params.set("setorResponsavel", setorResponsavel);
         const query = params.toString();
         const res = await fetch(`/api/producao${query ? `?${query}` : ""}`);
         if (!res.ok) throw new Error("Falha ao carregar o resumo de produção.");
@@ -89,7 +92,7 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
         setCarregando(false);
       }
     })();
-  }, [desde, ate, setor]);
+  }, [desde, ate, setorSolicitante, setorResponsavel]);
 
   async function abrirDemanda(demandaId: number) {
     setAvisoDemanda(null);
@@ -165,12 +168,24 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
 
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
           <select
-            value={setor}
-            onChange={(e) => setSetor(e.target.value as Setor | "")}
+            value={setorSolicitante}
+            onChange={(e) => setSetorSolicitante(e.target.value as Setor | "")}
             className={selectClass}
           >
-            <option value="">Setor: todos</option>
+            <option value="">Solicitante: todos</option>
             {SETORES.map((s) => (
+              <option key={s} value={s}>
+                {SETOR_LABEL[s]}
+              </option>
+            ))}
+          </select>
+          <select
+            value={setorResponsavel}
+            onChange={(e) => setSetorResponsavel(e.target.value as Setor | "")}
+            className={selectClass}
+          >
+            <option value="">Responsável: todos</option>
+            {SETORES_RESPONSAVEL.map((s) => (
               <option key={s} value={s}>
                 {SETOR_LABEL[s]}
               </option>
@@ -194,13 +209,14 @@ export function ProducaoApp({ session }: { session: SessionInfo }) {
               className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </label>
-          {(desde || ate || setor) && (
+          {(desde || ate || setorSolicitante || setorResponsavel) && (
             <button
               type="button"
               onClick={() => {
                 setDesde("");
                 setAte("");
-                setSetor("");
+                setSetorSolicitante("");
+                setSetorResponsavel("");
               }}
               className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
             >

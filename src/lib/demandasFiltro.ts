@@ -5,7 +5,14 @@ import type { Prisma, Prioridade, Setor, StatusDemanda } from "@/generated/prism
 import type { SessionInfo } from "@/lib/types";
 
 const SETOR_VALUES = ["ESTOQUE", "ALMOXARIFADO", "FUNDICAO"] as const;
-const STATUS_VALUES = ["PENDENTE", "EM_ANDAMENTO", "ENTREGUE", "CONCLUIDA", "CANCELADA"] as const;
+const STATUS_VALUES = [
+  "PENDENTE",
+  "EM_ANDAMENTO",
+  "ENTREGUE_PARCIAL",
+  "ENTREGUE",
+  "CONCLUIDA",
+  "CANCELADA",
+] as const;
 const PRIORIDADE_VALUES = ["BAIXA", "MEDIA", "ALTA"] as const;
 
 export function buildDemandasWhere(

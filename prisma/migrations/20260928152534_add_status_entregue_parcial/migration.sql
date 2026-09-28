@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "StatusDemanda" ADD VALUE 'ENTREGUE_PARCIAL';
